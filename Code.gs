@@ -22,8 +22,7 @@ const SHEET_PEER_QUESTIONS = "Peer Questions";
 const SHEET_WORK_CATEGORIES = "Work Categories";
 const SHEET_CATEGORY_SUGGESTIONS = "Category Suggestions";
 const SHEET_PERFORMANCE = "Performance Log";
-const SHEET_FEEDBACK = "Feedback";
-const APP_RELEASE = "13H.6.9-FEEDBACK-SCHEMA";
+const APP_RELEASE = "13H.6.8-PEER";
 const PERFORMANCE_SLOW_MS = 5000;
 
 // Question duplicates are checked by normalized Question + Event + Case Link
@@ -45,7 +44,7 @@ const SETUP_CACHE_SECONDS = 300;
 // every sheet header. Bump this value only when a future release changes the
 // spreadsheet schema, then run runManualSetup() once before deployment.
 const SCHEMA_VERSION_KEY = 'SUPPORT_HUB_SCHEMA_VERSION';
-const SCHEMA_VERSION = 'PROFESSIONAL_PERFORMANCE_RC1_TEAM_FLAG_V1_TASK_ATTENTION_V1_FEEDBACK_V2';
+const SCHEMA_VERSION = 'PROFESSIONAL_PERFORMANCE_RC1_TEAM_FLAG_V1_TASK_ATTENTION_V1';
 // Team routing must never reuse a roster cached by an older release. The
 // generation suffix also prevents an in-flight read from restoring stale
 // Primary/Backup values after Admin saves a newer roster.
@@ -116,67 +115,6 @@ const T_COL = {
   ATTENTION_TODAY: 28, ATTENTION_SET_AT: 29, ATTENTION_SET_BY: 30, ATTENTION_UNTIL: 31
 };
 const T_WIDTH = 31;
-const F_COL = {
-  FEEDBACK_ID: 1, FEEDBACK_TYPE: 2, CATEGORY: 3, REASON: 4,
-  SUBMITTED_BY: 5, SUBMITTED_BY_EMAIL: 6, CREATED_AT: 7,
-  FEEDBACK_FOR: 8, FEEDBACK_FOR_EMAIL: 9,
-  REVIEWER: 10, REVIEWER_EMAIL: 11,
-  RELATED_TYPE: 12, RELATED_ID: 13, RELATED_LINK: 14,
-  DETAILS: 15, EXPECTED_PROCESS: 16, IMPACT: 17, SUGGESTED_ACTION: 18,
-  STATUS: 19,
-  ACKNOWLEDGED_BY: 20, ACKNOWLEDGED_BY_EMAIL: 21, ACKNOWLEDGED_AT: 22,
-  COACHED: 23, COACHED_BY: 24, COACHED_BY_EMAIL: 25, COACHED_AT: 26,
-  COACHING_NOTE: 27,
-  ACTIONED_BY: 28, ACTIONED_AT: 29,
-  CLOSED_BY: 30, CLOSED_AT: 31,
-  UPDATED_AT: 32, UPDATED_BY: 33
-};
-const F_WIDTH = 33;
-const FEEDBACK_STATUS_NEW = 'New';
-const FEEDBACK_STATUS_PENDING_ACKNOWLEDGEMENT = 'Pending Acknowledgement';
-const FEEDBACK_STATUS_ACKNOWLEDGED = 'Acknowledged';
-const FEEDBACK_STATUS_ACTIONED = 'Actioned';
-const FEEDBACK_STATUS_NO_ACTION_NEEDED = 'No Action Needed';
-const FEEDBACK_STATUS_CLOSED = 'Closed';
-const FEEDBACK_TEAM_CATEGORIES = [
-  'Client Miscommunication',
-  'Talent Miscommunication',
-  'Internal Communication',
-  'SOP - Missed / Incorrect Steps',
-  'Did Not Understand the Issue',
-  'Incorrect Process',
-  'Knowledge Gap',
-  'Training Needed',
-  'Incorrect Information',
-  'Incomplete Work',
-  'Follow-up Needed',
-  'Other'
-];
-const FEEDBACK_TEAM_REASONS = {
-  'Client Miscommunication': ['Incorrect Information Given','Expectation Not Set Clearly','Response / Tone','Other'],
-  'Talent Miscommunication': ['Incorrect Information Given','Expectation Not Set Clearly','Response / Tone','Other'],
-  'Internal Communication': ['Information Not Shared','Expectation Not Clear','Response / Tone','Other'],
-  'SOP - Missed / Incorrect Steps': ['Missed Step','Incorrect Step','Process Not Followed','Other'],
-  'Did Not Understand the Issue': ['Issue Was Not Understood','Wrong Resolution Path','Needed Clarification','Other'],
-  'Incorrect Process': ['Wrong Process Used','Process Not Followed','Other'],
-  'Knowledge Gap': ['Missing Knowledge','Needed Guidance','Other'],
-  'Training Needed': ['New Process','Refresher Needed','Other'],
-  'Incorrect Information': ['Wrong Information','Outdated Information','Other'],
-  'Incomplete Work': ['Missing Information','Missing Action','Other'],
-  'Follow-up Needed': ['Follow-up Missed','Follow-up Delayed','Other'],
-  'Other': ['Other']
-};
-const FEEDBACK_IT_CATEGORIES = [
-  'Bug',
-  'UI Issue',
-  'Login / Access',
-  'Performance',
-  'Data Issue',
-  'Feature Not Working',
-  'Improvement Request',
-  'Other'
-];
-
 const TASK_STATUS_PENDING = 'Pending';
 const TASK_STATUS_IN_PROGRESS = 'In Progress';
 const TASK_STATUS_COMPLETED = 'Completed';
@@ -193,10 +131,6 @@ const ATTACHMENT_FOLDER_NAME = 'Support Hub Attachments';
 const ATTACHMENT_FOLDER_SCRIPT_PROP = 'SUPPORT_HUB_ATTACHMENT_FOLDER_ID_V2';
 const ATTACHMENT_ACCESS_SIGNATURE_PROP = 'SUPPORT_HUB_ATTACHMENT_ACCESS_V2';
 const ATTACHMENT_FOLDER_USER_PROP = 'SUPPORT_HUB_ATTACHMENT_FOLDER_ID';
-// Keep Apps Script RPC payloads comfortably below their practical limits. The
-// browser applies the same limit after resizing; this server check also keeps
-// older deployed clients from sending an oversized base64 payload.
-const MAX_RICH_TEXT_IMAGE_BYTES = 6 * 1024 * 1024;
 
 function requireSheetCellLength(value, label) {
   if (String(value == null ? '' : value).length > MAX_SHEET_CELL_CHARS) {
@@ -357,17 +291,10 @@ function uploadRichTextImage(dataUrl, fileName, declaredSize, context, recordId,
   if (!match) throw new Error('Use a PNG, JPG, GIF, or WebP image.');
   const mimeType = match[1].toLowerCase() === 'image/jpg' ? 'image/jpeg' : match[1].toLowerCase();
 
-  const encoded = match[2].replace(/\s+/g, '');
-  if (encoded.length > Math.ceil(MAX_RICH_TEXT_IMAGE_BYTES * 4 / 3)) {
-    throw new Error('This image is too large to upload. Please use a smaller image or screenshot.');
-  }
   let bytes;
-  try { bytes = Utilities.base64Decode(encoded); }
+  try { bytes = Utilities.base64Decode(match[2].replace(/\s+/g, '')); }
   catch (e) { throw new Error('The image could not be read. Please try attaching it again.'); }
   if (!bytes || !bytes.length) throw new Error('The selected image is empty.');
-  if (bytes.length > MAX_RICH_TEXT_IMAGE_BYTES) {
-    throw new Error('This image is too large to upload. Please use a smaller image or screenshot.');
-  }
 
   // Task attachments may only be added by somebody who can already see the task.
   if (/^Task/i.test(String(context || '')) && recordId) {
@@ -407,22 +334,13 @@ function uploadRichTextImage(dataUrl, fileName, declaredSize, context, recordId,
   // that one permission silently on the file. Never use DriveApp.addViewer(s),
   // because it can generate a separate sharing notification for every image.
   let sharingWarning = '';
-  const failedRecipients = Array.from(new Set((folderAccess.failedEmails || []).filter(Boolean)));
   const stillFailed = [];
-  if (failedRecipients.length) {
-    // A folder policy can require direct file permissions. Do those requests in
-    // parallel: issuing them one at a time made a normal image paste wait once
-    // per affected team member.
-    const requests = failedRecipients.map(email => drivePermissionRequest_(file.getId(), email, 'reader'));
+  (folderAccess.failedEmails || []).forEach(email => {
     try {
-      const responses = UrlFetchApp.fetchAll(requests);
-      responses.forEach((response, index) => {
-        if (!drivePermissionResponseSucceeded_(response)) stillFailed.push(failedRecipients[index]);
-      });
-    } catch (e) {
-      failedRecipients.forEach(email => stillFailed.push(email));
-    }
-  }
+      const retry = createDrivePermissionSilently_(file.getId(), email, 'reader');
+      if (!retry.success) stillFailed.push(email);
+    } catch (e) { stillFailed.push(email); }
+  });
   if (stillFailed.length) {
     sharingWarning = 'The image uploaded, but access could not be confirmed for ' + stillFailed.length + ' team member(s).';
   }
@@ -1309,8 +1227,6 @@ function ensureSheetsExist(force) {
   ensureTaskNotificationsSheet(ss);
   ensureTasksSheet(ss);
   ensurePeerQuestionsSheet(ss);
-  ensureFeedbackSheet(ss);
-  ensureFeedbackUpdatesSheet(ss);
 
   // All required sheets/columns now exist. Cache this short-lived fact so
   // high-frequency polling does not re-read every header on every request.
@@ -1457,52 +1373,6 @@ function ensureTasksSheet(ss) {
   }
 
   return s;
-}
-
-function ensureFeedbackSheet(ss) {
-  ss = ss || SpreadsheetApp.getActiveSpreadsheet();
-  let s = ss.getSheetByName(SHEET_FEEDBACK);
-  const expected = [
-    'Feedback ID', 'Feedback Type', 'Category', 'Reason',
-    'Submitted By', 'Submitted By Email', 'Created At',
-    'Feedback For', 'Feedback For Email',
-    'Reviewer', 'Reviewer Email',
-    'Related Type', 'Related ID', 'Related Link',
-    'Details', 'Expected Process / Behavior', 'Impact', 'Suggested Action / Guidance',
-    'Status',
-    'Acknowledged By', 'Acknowledged By Email', 'Acknowledged At',
-    'Coached', 'Coached By', 'Coached By Email', 'Coached At', 'Coaching Note',
-    'Actioned By', 'Actioned At',
-    'Closed By', 'Closed At',
-    'Updated At', 'Updated By'
-  ];
-
-  if (!s) {
-    s = ss.insertSheet(SHEET_FEEDBACK);
-    s.appendRow(expected);
-    s.setFrozenRows(1);
-    return s;
-  }
-
-  const width = Math.max(s.getLastColumn(), expected.length);
-  const headers = s.getRange(1, 1, 1, width).getValues()[0];
-  for (let i = 0; i < expected.length; i++) {
-    if (String(headers[i] || '').trim() !== expected[i]) {
-      s.getRange(1, i + 1).setValue(expected[i]);
-    }
-  }
-  s.setFrozenRows(1);
-  return s;
-}
-
-function ensureFeedbackUpdatesSheet(ss) {
-  let sheet = ss.getSheetByName('Feedback Updates');
-  if (!sheet) sheet = ss.insertSheet('Feedback Updates');
-  const headers = ['Feedback ID','Update ID','Update Type','Message','By','By Email','Created At'];
-  if (sheet.getMaxColumns() < headers.length) sheet.insertColumnsAfter(sheet.getMaxColumns(), headers.length - sheet.getMaxColumns());
-  sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
-  sheet.setFrozenRows(1);
-  return sheet;
 }
 
 function ensureNotificationPreferencesSheet(ss) {
@@ -6144,18 +6014,34 @@ function createTask(payload) {
     const priority = ''; // Legacy priority column retained only for sheet compatibility.
     const parent = resolveTaskParentContext(payload.parentType, payload.parentId, creator);
     const requestedTaskCategory = Object.prototype.hasOwnProperty.call(payload, 'category') ? String(payload.category || '').trim() : 'None';
-    const relatedClientTalent = Object.prototype.hasOwnProperty.call(payload, 'relatedClientTalent')
-      ? String(payload.relatedClientTalent || '').trim()
-      : String(parent.event || '').trim();
-    const relatedLink = Object.prototype.hasOwnProperty.call(payload, 'relatedLink')
-      ? String(payload.relatedLink || '').trim()
-      : String(parent.link || '').trim();
+
+    // Ticket -> + Add Task is a clean Create Task workflow. The server must
+    // enforce that rule too, because the browser is not the source of truth.
+    // The Ticket remains the parent connection, but its Event / Client /
+    // Talent / CR / TR and Related Link must not be inherited. A separately
+    // selected Related Ticket continues to use the normal inheritance behavior.
+    const cleanParentTicketContext = payload.cleanParentTicketContext === true && parent.parentType === 'Question';
+    const relatedClientTalent = cleanParentTicketContext
+      ? ''
+      : (Object.prototype.hasOwnProperty.call(payload, 'relatedClientTalent')
+        ? String(payload.relatedClientTalent || '').trim()
+        : String(parent.event || '').trim());
+    const relatedLink = cleanParentTicketContext
+      ? ''
+      : (Object.prototype.hasOwnProperty.call(payload, 'relatedLink')
+        ? String(payload.relatedLink || '').trim()
+        : String(parent.link || '').trim());
+
     // Backward compatibility: older deployed Create Task forms did not send
     // relatedEntityType. Keep those clients working while the newer UI can
     // explicitly choose Event / Client / Talent / CR / TR relationship types.
     const hasRelatedEntityType = Object.prototype.hasOwnProperty.call(payload, 'relatedEntityType');
-    const inheritedType = (!hasRelatedEntityType && parent.parentType === 'Question' && relatedClientTalent) ? 'Event' : '';
-    const legacyType = (!hasRelatedEntityType && relatedClientTalent && relatedLink && !inheritedType) ? 'Event' : inheritedType;
+    const inheritedType = cleanParentTicketContext
+      ? ''
+      : ((!hasRelatedEntityType && parent.parentType === 'Question' && relatedClientTalent) ? 'Event' : '');
+    const legacyType = cleanParentTicketContext
+      ? ''
+      : ((!hasRelatedEntityType && relatedClientTalent && relatedLink && !inheritedType) ? 'Event' : inheritedType);
     const relatedContext = validateTaskRelatedContext_(relatedClientTalent, hasRelatedEntityType ? payload.relatedEntityType : legacyType, relatedLink);
     const relatedEntityType = relatedContext.type;
     // Category behaves like ticket intake: an explicit category wins. If the
@@ -7443,365 +7329,4 @@ function escalatePeerQuestion(id,supportEmail,requestingEmail){
     bumpPeerDataVersion(); logAudit('PEER_QUESTION_ESCALATE',actor.email,actor.name,id,{support:support.email,ticketId:ticketId});
     return {success:true,ticketId:ticketId};
   });
-}
-
-
-// ============================================================================
-// FEEDBACK - PHASE 1B: CREATE FEEDBACK
-// ============================================================================
-
-function isValidFeedbackRelatedLink(value) {
-  const link = String(value || '').trim();
-  return !link || /^https?:\/\/[^\s]+$/i.test(link);
-}
-
-function requireFeedbackRelatedLink(value, required) {
-  const link = String(value || '').trim();
-  if (!required && !link) return '';
-  if (!link) throw new Error('Related Link is required when a related item is provided.');
-  if (!isValidFeedbackRelatedLink(link)) {
-    throw new Error('Enter a valid Related Link starting with http:// or https://.');
-  }
-  return link;
-}
-
-function feedbackRecipientMember(email) {
-  const wanted = normalizeEmail(email);
-  if (!wanted) throw new Error('Please select who the Team Feedback is for.');
-  const matches = _getTeamMembersInternal()
-    .filter(m => String(m.status || '').trim().toLowerCase() === 'active')
-    .filter(m => normalizeEmail(m.email) === wanted)
-    .filter(m => String(m.category || '').trim().toLowerCase() !== 'admin');
-  if (!matches.length) throw new Error('Feedback can only be given to an active non-Admin team member.');
-  return matches[0];
-}
-
-function feedbackReviewerMember(email) {
-  const wanted = normalizeEmail(email);
-  const matches = _getTeamMembersInternal()
-    .filter(m => String(m.status || '').trim().toLowerCase() === 'active')
-    .filter(m => normalizeEmail(m.email) === wanted);
-  return matches[0] || null;
-}
-
-function createFeedback(payload) {
-  return withLock(() => {
-    payload = payload || {};
-    const actor = requireAuthenticatedMember(payload.submittedByEmail);
-    const type = String(payload.feedbackType || 'Team Feedback').trim();
-    const category = String(payload.category || '').trim();
-    const reason = String(payload.reason || '').trim();
-    const details = String(payload.details || '').trim();
-    const expected = String(payload.expectedProcess || '').trim();
-    const impact = String(payload.impact || '').trim();
-    const suggestedAction = String(payload.suggestedAction || '').trim();
-    const relatedType = String(payload.relatedType || '').trim();
-    const relatedId = String(payload.relatedId || '').trim();
-    const relatedLink = requireFeedbackRelatedLink(payload.relatedLink, !!relatedId);
-
-    if (type !== 'Team Feedback' && type !== 'IT / Bug Feedback') {
-      throw new Error('Choose a valid Feedback type.');
-    }
-    if (type === 'IT / Bug Feedback' && !isAdminMember(actor)) {
-      throw new Error('IT / Bug Feedback can only be submitted by an active Admin profile.');
-    }
-    if (!category) throw new Error('Please choose a Feedback category.');
-    if (!details) throw new Error('Feedback details are required.');
-    if (!stripHtmlToText(details)) throw new Error('Feedback details are required.');
-    requireSheetCellLength(details, 'Feedback details');
-    requireSheetCellLength(expected, 'Expected process / behavior');
-    requireSheetCellLength(impact, 'Feedback impact');
-    requireSheetCellLength(suggestedAction, 'Suggested action / guidance');
-    rejectEmbeddedBase64Image(details, 'Feedback details');
-    rejectEmbeddedBase64Image(expected, 'Expected process / behavior');
-    rejectEmbeddedBase64Image(impact, 'Feedback impact');
-    rejectEmbeddedBase64Image(suggestedAction, 'Suggested action / guidance');
-
-    let recipient = null;
-    if (type === 'Team Feedback') {
-      recipient = feedbackRecipientMember(payload.feedbackForEmail);
-      if (normalizeEmail(recipient.email) === normalizeEmail(actor.email)) throw new Error('Choose a team member other than yourself for Team Feedback.');
-      if (relatedId && !relatedType) throw new Error('Choose a Related To type for the related record.');
-      if (relatedType && !relatedId) throw new Error('Enter the Related Name / ID or clear Related To.');
-      if (!FEEDBACK_TEAM_CATEGORIES.includes(category)) throw new Error('Choose a valid Team Feedback category.');
-      const allowedReasons = FEEDBACK_TEAM_REASONS[category] || [];
-      if (reason && allowedReasons.length && !allowedReasons.includes(reason)) throw new Error('Choose a valid Feedback reason.');
-    } else {
-      if (relatedId && !relatedType) throw new Error('Choose a Related To type for the related record.');
-      if (relatedType && !relatedId) throw new Error('Enter the Related Name / ID or clear Related To.');
-      if (!FEEDBACK_IT_CATEGORIES.includes(category)) throw new Error('Choose a valid IT / Bug Feedback category.');
-    }
-
-    const reviewer = feedbackReviewerMember(actor.email) || actor;
-    const now = new Date();
-    const id = 'FB-' + Utilities.getUuid().replace(/-/g, '').slice(0, 10).toUpperCase();
-    const status = type === 'Team Feedback' ? FEEDBACK_STATUS_PENDING_ACKNOWLEDGEMENT : FEEDBACK_STATUS_NEW;
-    const sheet = ensureFeedbackSheet(SpreadsheetApp.getActiveSpreadsheet());
-
-    sheet.appendRow([
-      id, type, category, reason,
-      actor.name, actor.email, now,
-      recipient ? recipient.name : '', recipient ? recipient.email : '',
-      reviewer.name, reviewer.email,
-      relatedType, relatedId, relatedLink,
-      details, expected, impact, suggestedAction,
-      status,
-      '', '', '',
-      false, '', '', '', '',
-      '', '',
-      '', '',
-      now, actor.name
-    ]);
-    SpreadsheetApp.flush();
-
-    logAudit('FEEDBACK_CREATE', actor.email, actor.name, id, {
-      feedbackType: type,
-      category: category,
-      reason: reason,
-      feedbackFor: recipient ? recipient.email : '',
-      reviewer: reviewer.email,
-      relatedType: relatedType,
-      relatedId: relatedId,
-      status: status
-    });
-
-    const createdRow = sheet.getRange(sheet.getLastRow(), 1, 1, F_WIDTH).getValues()[0];
-    const createdFeedback = feedbackRowToObject_(createdRow);
-
-    return {
-      success: true,
-      feedbackId: id,
-      status: status,
-      feedbackType: type,
-      feedbackFor: recipient ? { name: recipient.name, email: recipient.email } : null,
-      feedback: createdFeedback
-    };
-  }, { bumpDataVersion: false, operation: 'createFeedback' });
-}
-
-function getFeedbackCreateOptions(requestingEmail) {
-  const actor = requireAuthenticatedMember(requestingEmail);
-  const roster = _getTeamMembersInternal()
-    .filter(m => String(m.status || '').trim().toLowerCase() === 'active')
-    .filter(m => !isAdminMember(m))
-    .map(m => ({ name: m.name, email: normalizeEmail(m.email), title: String(m.title || '') }))
-    .sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
-
-  return {
-    success: true,
-    canSubmitTeamFeedback: true,
-    canSubmitItFeedback: isAdminMember(actor),
-    recipients: roster,
-    teamCategories: FEEDBACK_TEAM_CATEGORIES,
-    teamReasons: FEEDBACK_TEAM_REASONS,
-    itCategories: FEEDBACK_IT_CATEGORIES
-  };
-}
-
-
-// ============================================================================
-// FEEDBACK - PHASE 1C: INBOX, DETAIL, ACKNOWLEDGEMENT, QUESTIONS
-// ============================================================================
-
-function feedbackRowToObject_(row) {
-  return {
-    feedbackId: String(row[F_COL.FEEDBACK_ID - 1] || ''),
-    feedbackType: String(row[F_COL.FEEDBACK_TYPE - 1] || ''),
-    category: String(row[F_COL.CATEGORY - 1] || ''),
-    reason: String(row[F_COL.REASON - 1] || ''),
-    submittedBy: String(row[F_COL.SUBMITTED_BY - 1] || ''),
-    submittedByEmail: normalizeEmail(row[F_COL.SUBMITTED_BY_EMAIL - 1]),
-    createdAt: row[F_COL.CREATED_AT - 1] || '',
-    feedbackFor: String(row[F_COL.FEEDBACK_FOR - 1] || ''),
-    feedbackForEmail: normalizeEmail(row[F_COL.FEEDBACK_FOR_EMAIL - 1]),
-    reviewer: String(row[F_COL.REVIEWER - 1] || ''),
-    reviewerEmail: normalizeEmail(row[F_COL.REVIEWER_EMAIL - 1]),
-    relatedType: String(row[F_COL.RELATED_TYPE - 1] || ''),
-    relatedId: String(row[F_COL.RELATED_ID - 1] || ''),
-    relatedLink: String(row[F_COL.RELATED_LINK - 1] || ''),
-    details: String(row[F_COL.DETAILS - 1] || ''),
-    expectedProcess: String(row[F_COL.EXPECTED_PROCESS - 1] || ''),
-    impact: String(row[F_COL.IMPACT - 1] || ''),
-    suggestedAction: String(row[F_COL.SUGGESTED_ACTION - 1] || ''),
-    status: String(row[F_COL.STATUS - 1] || ''),
-    acknowledgedBy: String(row[F_COL.ACKNOWLEDGED_BY - 1] || ''),
-    acknowledgedByEmail: normalizeEmail(row[F_COL.ACKNOWLEDGED_BY_EMAIL - 1]),
-    acknowledgedAt: row[F_COL.ACKNOWLEDGED_AT - 1] || '',
-    coached: row[F_COL.COACHED - 1] === true || String(row[F_COL.COACHED - 1] || '').toLowerCase() === 'true',
-    coachedBy: String(row[F_COL.COACHED_BY - 1] || ''),
-    coachedByEmail: normalizeEmail(row[F_COL.COACHED_BY_EMAIL - 1]),
-    coachedAt: row[F_COL.COACHED_AT - 1] || '',
-    coachingNote: String(row[F_COL.COACHING_NOTE - 1] || ''),
-    actionedBy: String(row[F_COL.ACTIONED_BY - 1] || ''),
-    actionedAt: row[F_COL.ACTIONED_AT - 1] || '',
-    closedBy: String(row[F_COL.CLOSED_BY - 1] || ''),
-    closedAt: row[F_COL.CLOSED_AT - 1] || '',
-    updatedAt: row[F_COL.UPDATED_AT - 1] || '',
-    updatedBy: String(row[F_COL.UPDATED_BY - 1] || '')
-  };
-}
-
-function getFeedbackUpdates_(feedbackId) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ensureFeedbackUpdatesSheet(ss);
-  const lastRow = sheet.getLastRow();
-  if (lastRow < 2) return [];
-  const rows = sheet.getRange(2, 1, lastRow - 1, 7).getValues();
-  return rows.filter(r => String(r[0] || '') === String(feedbackId || '')).map(r => ({
-    feedbackId: String(r[0] || ''),
-    updateId: String(r[1] || ''),
-    updateType: String(r[2] || ''),
-    message: String(r[3] || ''),
-    by: String(r[4] || ''),
-    byEmail: normalizeEmail(r[5]),
-    createdAt: r[6] || ''
-  }));
-}
-
-function feedbackUserCanView_(feedback, member) {
-  if (!feedback || !member) return false;
-  const email = normalizeEmail(member.email);
-  const sameIdentity = (storedEmail) => emailsRepresentSameWorkspaceIdentity(storedEmail, email);
-  return isAdminMember(member)
-    || sameIdentity(feedback.submittedByEmail)
-    || sameIdentity(feedback.feedbackForEmail)
-    || sameIdentity(feedback.reviewerEmail);
-}
-
-function getFeedbackData(requestingEmail) {
-  const member = requireAuthenticatedMember(requestingEmail);
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ensureFeedbackSheet(ss);
-  SpreadsheetApp.flush();
-
-  const lastRow = sheet.getLastRow();
-  const me = normalizeEmail(member.email);
-  if (lastRow < 2) {
-    return {
-      data: [],
-      pendingAcknowledgement: [],
-      submitted: [],
-      version: String(lastRow),
-      diagnostics: {
-        sheetName: SHEET_FEEDBACK,
-        lastRow: lastRow,
-        requestingEmail: me,
-        visibleCount: 0
-      }
-    };
-  }
-
-  const rows = sheet.getRange(2, 1, lastRow - 1, F_WIDTH).getValues();
-  const parsed = rows.map(feedbackRowToObject_);
-  const data = parsed.filter(f => feedbackUserCanView_(f, member));
-  data.sort((a,b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
-
-  const pendingAcknowledgement = data.filter(f =>
-    emailsRepresentSameWorkspaceIdentity(f.feedbackForEmail, me) &&
-    f.status === FEEDBACK_STATUS_PENDING_ACKNOWLEDGEMENT
-  );
-  const submitted = data.filter(f =>
-    emailsRepresentSameWorkspaceIdentity(f.submittedByEmail, me)
-  );
-
-  return {
-    data: data,
-    pendingAcknowledgement: pendingAcknowledgement,
-    submitted: submitted,
-    version: String(lastRow) + ':' + String(sheet.getLastColumn()),
-    diagnostics: {
-      sheetName: SHEET_FEEDBACK,
-      lastRow: lastRow,
-      dataRowCount: parsed.filter(f => !!f.feedbackId).length,
-      visibleCount: data.length,
-      requestingEmail: me,
-      latestFeedbackId: parsed.length ? parsed[parsed.length - 1].feedbackId : ''
-    }
-  };
-}
-
-function getFeedbackDetail(feedbackId, requestingEmail) {
-  const member = requireAuthenticatedMember(requestingEmail);
-  const id = String(feedbackId || '').trim();
-  if (!id) throw new Error('Feedback ID is required.');
-  const sheet = ensureFeedbackSheet(SpreadsheetApp.getActiveSpreadsheet());
-  const lastRow = sheet.getLastRow();
-  if (lastRow < 2) throw new Error('Feedback not found.');
-  const rows = sheet.getRange(2, 1, lastRow - 1, F_WIDTH).getValues();
-  let feedback = null;
-  let rowIndex = -1;
-  rows.some((row, index) => {
-    if (String(row[F_COL.FEEDBACK_ID - 1] || '') !== id) return false;
-    feedback = feedbackRowToObject_(row);
-    rowIndex = index + 2;
-    return true;
-  });
-  if (!feedback) throw new Error('Feedback not found.');
-  if (!feedbackUserCanView_(feedback, member)) throw new Error('Access denied.');
-  feedback.updates = getFeedbackUpdates_(id);
-  return feedback;
-}
-
-function acknowledgeFeedback(feedbackId, requestingEmail) {
-  const member = requireAuthenticatedMember(requestingEmail);
-  const id = String(feedbackId || '').trim();
-  if (!id) throw new Error('Feedback ID is required.');
-  const sheet = ensureFeedbackSheet(SpreadsheetApp.getActiveSpreadsheet());
-  const lastRow = sheet.getLastRow();
-  if (lastRow < 2) throw new Error('Feedback not found.');
-  const rows = sheet.getRange(2, 1, lastRow - 1, F_WIDTH).getValues();
-  let rowIndex = -1, feedback = null;
-  rows.some((row, index) => {
-    if (String(row[F_COL.FEEDBACK_ID - 1] || '') !== id) return false;
-    feedback = feedbackRowToObject_(row);
-    rowIndex = index + 2;
-    return true;
-  });
-  if (!feedback) throw new Error('Feedback not found.');
-  const me = normalizeEmail(member.email);
-  if (feedback.feedbackForEmail !== me) throw new Error('Only the person the feedback is for can acknowledge it.');
-  if (feedback.status !== FEEDBACK_STATUS_PENDING_ACKNOWLEDGEMENT) {
-    return { success: true, feedback: feedback, alreadyAcknowledged: true };
-  }
-
-  const now = new Date();
-  sheet.getRange(rowIndex, F_COL.STATUS).setValue(FEEDBACK_STATUS_ACKNOWLEDGED);
-  sheet.getRange(rowIndex, F_COL.ACKNOWLEDGED_BY).setValue(member.name || '');
-  sheet.getRange(rowIndex, F_COL.ACKNOWLEDGED_BY_EMAIL).setValue(me);
-  sheet.getRange(rowIndex, F_COL.ACKNOWLEDGED_AT).setValue(now);
-  sheet.getRange(rowIndex, F_COL.UPDATED_AT).setValue(now);
-  sheet.getRange(rowIndex, F_COL.UPDATED_BY).setValue(member.name || '');
-  logAudit('FEEDBACK_ACKNOWLEDGED', me, member.name || '', id, { feedbackId: id });
-
-  const updated = feedbackRowToObject_(sheet.getRange(rowIndex, 1, 1, F_WIDTH).getValues()[0]);
-  updated.updates = getFeedbackUpdates_(id);
-  return { success: true, feedback: updated, alreadyAcknowledged: false };
-}
-
-function askFeedbackQuestion(feedbackId, message, requestingEmail) {
-  const member = requireAuthenticatedMember(requestingEmail);
-  const id = String(feedbackId || '').trim();
-  const text = String(message || '').trim();
-  if (!id) throw new Error('Feedback ID is required.');
-  if (!text) throw new Error('Enter a question first.');
-  requireSheetCellLength(text, 'Feedback question');
-
-  const feedback = getFeedbackDetail(id, member.email);
-  if (!feedbackUserCanView_(feedback, member)) throw new Error('Access denied.');
-
-  const updatesSheet = ensureFeedbackUpdatesSheet(SpreadsheetApp.getActiveSpreadsheet());
-  const updateId = 'FBU-' + Utilities.getUuid().replace(/-/g, '').slice(0, 10).toUpperCase();
-  const now = new Date();
-  updatesSheet.appendRow([id, updateId, 'Question', text, member.name || '', normalizeEmail(member.email), now]);
-
-  const feedbackSheet = ensureFeedbackSheet(SpreadsheetApp.getActiveSpreadsheet());
-  const feedbackRows = feedbackSheet.getRange(2, 1, Math.max(1, feedbackSheet.getLastRow() - 1), F_WIDTH).getValues();
-  const rowIndex = feedbackRows.findIndex(r => String(r[F_COL.FEEDBACK_ID - 1] || '') === id);
-  if (rowIndex >= 0) {
-    const sheetRow = rowIndex + 2;
-    feedbackSheet.getRange(sheetRow, F_COL.UPDATED_AT).setValue(now);
-    feedbackSheet.getRange(sheetRow, F_COL.UPDATED_BY).setValue(member.name || '');
-  }
-  logAudit('FEEDBACK_QUESTION', member.email, member.name || '', id, { feedbackId: id, updateId: updateId });
-  return { success: true, updateId: updateId };
 }
