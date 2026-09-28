@@ -480,9 +480,6 @@ html { font-size: 16px; }
   <div class="max-w-7xl mx-auto px-4 flex items-center gap-2 overflow-x-auto py-2 text-xs font-semibold" aria-label="Home navigation">
     <button onclick="switchTab('coordinator')" id="subtab-coordinator" class="px-3 py-1.5 rounded-lg bg-slate-900 text-white whitespace-nowrap">My Questions</button>
     <button onclick="switchTab('peer')" id="tab-peer" class="px-3 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 hidden items-center gap-1.5 whitespace-nowrap"><span>Peer Questions</span><span id="peer-ticker" class="hidden bg-emerald-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full">0</span></button>
-    <button onclick="switchTab('feedback')" id="tab-feedback" class="px-3 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 flex items-center gap-1.5 whitespace-nowrap">
-      <span>Feedback</span><span id="feedback-ticker" class="hidden bg-amber-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full">0</span>
-    </button>
     <button onclick="switchTab('answered')" id="tab-answered" class="px-3 py-1.5 rounded-lg text-slate-600 hover:bg-slate-100 flex items-center gap-1.5 whitespace-nowrap">
       <span>Answered Tickets</span><span id="unread-ticker" class="hidden bg-slate-200 text-slate-600 border border-slate-300 text-[9px] font-bold px-1.5 py-0.5 rounded-full">0</span>
     </button>
@@ -516,7 +513,6 @@ html { font-size: 16px; }
       <div class="absolute right-0 mt-2 w-52 bg-white border border-slate-200 rounded-xl shadow-xl z-30 overflow-hidden text-xs">
         <button type="button" onclick="openHomeQuestionComposer()" class="w-full text-left px-4 py-3 hover:bg-slate-50 font-semibold text-slate-800">Ask Support</button>
         <button type="button" onclick="closeHomeCreateMenu(); openCreateTaskModal()" class="w-full text-left px-4 py-3 hover:bg-slate-50 font-semibold text-slate-800 border-t border-slate-100">Create Task</button>
-        <button type="button" onclick="closeHomeCreateMenu(); openCreateFeedbackModal()" class="w-full text-left px-4 py-3 hover:bg-slate-50 font-semibold text-slate-800 border-t border-slate-100">Give Feedback</button>
         <button id="home-create-peer" type="button" onclick="closeHomeCreateMenu(); openPeerCreateModal()" class="hidden w-full text-left px-4 py-3 hover:bg-slate-50 font-semibold text-slate-800 border-t border-slate-100">Ask a Peer</button>
       </div>
     </details>
@@ -555,36 +551,6 @@ html { font-size: 16px; }
       <div id="home-task-metrics" class="grid grid-cols-2 xl:grid-cols-1 gap-2 p-3"></div>
     </section>
   </div>
-
-  <section id="home-feedback-panel" class="bg-white border border-amber-200 rounded-2xl overflow-hidden shadow-sm">
-    <div class="px-4 py-3 bg-gradient-to-r from-amber-50 via-yellow-50 to-white border-b border-amber-100 flex items-center justify-between gap-3">
-      <div>
-        <p class="text-[9px] font-black uppercase tracking-[0.16em] text-amber-700">Feedback</p>
-        <h3 class="text-sm font-bold text-slate-800">Feedback that needs your attention</h3>
-        <p id="home-feedback-help" class="text-[10px] text-slate-500 mt-0.5">Pending acknowledgement and your submitted feedback.</p>
-      </div>
-      <button type="button" onclick="switchTab('feedback')" class="text-[11px] font-bold text-amber-700 hover:text-amber-900 whitespace-nowrap">Open Feedback →</button>
-    </div>
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 p-3 border-b border-slate-100">
-      <button type="button" onclick="openFeedbackHomeFilter('PENDING')" class="rounded-xl border border-amber-200 bg-amber-50/60 p-3 text-left hover:border-amber-400">
-        <p class="text-[9px] font-bold uppercase tracking-wider text-amber-700">Pending Acknowledgement</p>
-        <p id="home-feedback-pending-count" class="text-xl font-bold text-slate-900 mt-1">0</p>
-      </button>
-      <button type="button" onclick="openFeedbackHomeFilter('MINE')" class="rounded-xl border border-slate-200 p-3 text-left hover:border-slate-400">
-        <p class="text-[9px] font-bold uppercase tracking-wider text-slate-500">Submitted by Me</p>
-        <p id="home-feedback-submitted-count" class="text-xl font-bold text-slate-900 mt-1">0</p>
-      </button>
-      <button type="button" onclick="openFeedbackHomeFilter('ACK')" class="rounded-xl border border-emerald-200 bg-emerald-50/50 p-3 text-left hover:border-emerald-400">
-        <p class="text-[9px] font-bold uppercase tracking-wider text-emerald-700">Acknowledged</p>
-        <p id="home-feedback-ack-count" class="text-xl font-bold text-slate-900 mt-1">0</p>
-      </button>
-      <button type="button" onclick="openFeedbackHomeFilter('ALL')" class="rounded-xl border border-slate-200 p-3 text-left hover:border-slate-400">
-        <p class="text-[9px] font-bold uppercase tracking-wider text-slate-500">All Visible</p>
-        <p id="home-feedback-total-count" class="text-xl font-bold text-slate-900 mt-1">0</p>
-      </button>
-    </div>
-    <div id="home-feedback-list" class="divide-y divide-slate-100"></div>
-  </section>
 
   <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
     <div id="home-list-panel-1" class="bg-white border border-slate-200 border-t-4 border-t-rose-400 rounded-2xl overflow-hidden shadow-sm">
@@ -698,72 +664,6 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
 </div>
 </section>
 
-
-<!-- FEEDBACK: Phase 1C inbox -->
-<section id="view-feedback" class="hidden space-y-5">
-  <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200/80 flex flex-col md:flex-row md:items-center justify-between gap-3">
-    <div>
-      <h2 class="text-base font-bold text-slate-800">Feedback</h2>
-      <p class="text-xs text-slate-500 mt-1">Review feedback you submitted or feedback assigned to you. Team Feedback remains private and requires acknowledgement.</p>
-    </div>
-    <button type="button" onclick="openCreateFeedbackModal()" class="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2.5 rounded-xl text-xs font-bold">+ Give Feedback</button>
-  </div>
-
-  <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-    <button type="button" onclick="setFeedbackFilter('PENDING')" class="bg-amber-50/70 border border-amber-200 rounded-xl p-4 text-left hover:border-amber-400">
-      <p class="text-[10px] font-bold uppercase tracking-wider text-amber-700">Pending Acknowledgement</p>
-      <p id="feedback-stat-pending" class="text-xl font-bold text-slate-900 mt-1">0</p>
-    </button>
-    <button type="button" onclick="setFeedbackFilter('MINE')" class="bg-slate-50 border border-slate-200 rounded-xl p-4 text-left hover:border-slate-400">
-      <p class="text-[10px] font-bold uppercase tracking-wider text-slate-600">Submitted by Me</p>
-      <p id="feedback-stat-submitted" class="text-xl font-bold text-slate-900 mt-1">0</p>
-    </button>
-    <button type="button" onclick="setFeedbackFilter('ACK')" class="bg-emerald-50/60 border border-emerald-200 rounded-xl p-4 text-left hover:border-emerald-400">
-      <p class="text-[10px] font-bold uppercase tracking-wider text-emerald-700">Acknowledged</p>
-      <p id="feedback-stat-ack" class="text-xl font-bold text-slate-900 mt-1">0</p>
-    </button>
-    <button type="button" onclick="setFeedbackFilter('ALL')" class="bg-white border border-slate-200 rounded-xl p-4 text-left hover:border-slate-400">
-      <p class="text-[10px] font-bold uppercase tracking-wider text-slate-600">All Visible</p>
-      <p id="feedback-stat-total" class="text-xl font-bold text-slate-900 mt-1">0</p>
-    </button>
-  </div>
-
-  <div class="bg-white border border-slate-200 rounded-2xl overflow-hidden">
-    <div class="p-4 border-b border-slate-100 flex flex-col md:flex-row gap-2">
-      <select id="feedback-filter" onchange="renderFeedbackTab()" class="border border-slate-300 rounded-xl px-3 py-2 text-xs">
-        <option value="ALL">All Visible Feedback</option>
-        <option value="PENDING">Pending Acknowledgement</option>
-        <option value="MINE">Submitted by Me</option>
-        <option value="ACK">Acknowledged</option>
-      </select>
-      <input id="feedback-search" oninput="renderFeedbackTab()" class="flex-1 border border-slate-300 rounded-xl px-3 py-2 text-xs" placeholder="Search feedback...">
-    </div>
-    <div id="feedback-list" class="divide-y divide-slate-100"></div>
-  </div>
-</section>
-
-<!-- FEEDBACK DETAIL MODAL -->
-<div id="feedback-detail-modal" class="fixed inset-0 bg-slate-950/70 z-[58] hidden flex items-center justify-center p-4 backdrop-blur-sm" onclick="if(event.target===this)closeFeedbackDetail()">
-  <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-3xl max-h-[92vh] flex flex-col">
-    <div class="p-5 border-b flex items-start justify-between gap-4">
-      <div>
-        <span class="text-[10px] font-bold uppercase tracking-wider text-amber-700">Feedback</span>
-        <h3 id="feedback-detail-title" class="text-lg font-bold text-slate-900 mt-1">Feedback</h3>
-        <p id="feedback-detail-meta" class="text-[10px] text-slate-500 mt-1"></p>
-      </div>
-      <button type="button" onclick="closeFeedbackDetail()" class="text-slate-400 hover:text-slate-700 font-bold text-xl">&times;</button>
-    </div>
-    <div id="feedback-detail-body" class="p-5 overflow-y-auto space-y-4"></div>
-    <div class="p-4 border-t bg-slate-50 flex flex-wrap items-center justify-between gap-2">
-      <div id="feedback-detail-status" class="text-xs font-semibold text-slate-600"></div>
-      <div class="flex flex-wrap gap-2">
-        <button id="feedback-ask-question-btn" type="button" onclick="askCurrentFeedbackQuestion()" class="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 text-xs font-bold hover:bg-white">Ask a Question</button>
-        <button id="feedback-ack-btn" type="button" onclick="acknowledgeCurrentFeedback()" class="hidden px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold">Acknowledge Feedback</button>
-        <button type="button" onclick="closeFeedbackDetail()" class="px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold">Close</button>
-      </div>
-    </div>
-  </div>
-</div>
 
 <!-- PEER QUESTIONS: lightweight Coordinator-to-Coordinator help -->
 <section id="view-peer" class="hidden space-y-5">
@@ -1773,107 +1673,6 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
   </div>
 </div>
 
-<!-- CREATE FEEDBACK MODAL - PHASE 1B -->
-<div id="create-feedback-modal" class="fixed inset-0 bg-slate-950/70 z-[56] hidden flex items-center justify-center p-4 backdrop-blur-sm overflow-y-auto" onclick="if(event.target===this)closeCreateFeedbackModal()">
-  <div id="create-feedback-panel" class="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-3xl max-h-[92vh] flex flex-col">
-    <div class="flex items-start justify-between gap-4 p-5 border-b shrink-0">
-      <div>
-        <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200">Feedback</span>
-        <h3 class="text-base font-bold text-slate-900 mt-1">Give Feedback</h3>
-        <p class="text-[10px] text-slate-500 mt-1">Feedback is reviewed privately. Team Feedback stays pending until the recipient acknowledges that they reviewed and understood it.</p>
-      </div>
-      <button type="button" onclick="closeCreateFeedbackModal()" class="text-slate-400 hover:text-slate-700 font-bold text-xl" aria-label="Close">&times;</button>
-    </div>
-
-    <form id="create-feedback-form" novalidate onsubmit="submitCreateFeedback(event)" class="p-5 space-y-4 overflow-y-auto min-h-0">
-      <div id="feedback-type-wrap">
-        <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Feedback Type *</label>
-        <select id="feedback-create-type" onchange="syncFeedbackCreateType()" class="w-full border border-slate-300 p-2.5 rounded-xl text-xs outline-none focus:ring-2 focus:ring-amber-500">
-          <option value="Team Feedback">Team Feedback</option>
-          <option value="IT / Bug Feedback">IT / Bug Feedback</option>
-        </select>
-        <p id="feedback-type-help" class="text-[10px] text-slate-400 mt-1">Team Feedback is for a team member and requires acknowledgement.</p>
-      </div>
-
-      <div id="feedback-recipient-wrap">
-        <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Feedback For *</label>
-        <select id="feedback-create-recipient" required class="w-full border border-slate-300 p-2.5 rounded-xl text-xs outline-none focus:ring-2 focus:ring-amber-500">
-          <option value="">-- Select team member --</option>
-        </select>
-        <p class="text-[10px] text-slate-400 mt-1">This person will see the feedback in Pending Acknowledgement until it is acknowledged.</p>
-      </div>
-
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div>
-          <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Category *</label>
-          <select id="feedback-create-category" required onchange="syncFeedbackReasonOptions()" class="w-full border border-slate-300 p-2.5 rounded-xl text-xs outline-none focus:ring-2 focus:ring-amber-500"></select>
-        </div>
-        <div id="feedback-reason-wrap">
-          <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Reason <span class="normal-case font-medium text-slate-400">(optional)</span></label>
-          <select id="feedback-create-reason" class="w-full border border-slate-300 p-2.5 rounded-xl text-xs outline-none focus:ring-2 focus:ring-amber-500"></select>
-        </div>
-      </div>
-
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div>
-          <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Related To <span class="normal-case font-medium text-slate-400">(optional)</span></label>
-          <select id="feedback-create-related-type" onchange="syncFeedbackRelatedFields()" class="w-full border border-slate-300 p-2.5 rounded-xl text-xs outline-none focus:ring-2 focus:ring-amber-500">
-            <option value="">No related record</option>
-            <option value="Event">Event</option>
-            <option value="Client">Client</option>
-            <option value="Talent">Talent</option>
-            <option value="Case">Case</option>
-            <option value="CR">CR</option>
-            <option value="TR">TR</option>
-          </select>
-        </div>
-        <div>
-          <label id="feedback-related-id-label" class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Related Name / ID <span class="normal-case font-medium text-slate-400">(optional)</span></label>
-          <input id="feedback-create-related-id" class="w-full border border-slate-300 p-2.5 rounded-xl text-xs outline-none focus:ring-2 focus:ring-amber-500" placeholder="Event, client, talent, Case, CR, or TR">
-        </div>
-      </div>
-
-      <div>
-        <label id="feedback-related-link-label" class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Related Link <span class="normal-case font-medium text-slate-400">(optional)</span></label>
-        <input type="url" id="feedback-create-related-link" class="w-full border border-slate-300 p-2.5 rounded-xl text-xs outline-none focus:ring-2 focus:ring-amber-500" placeholder="https://...">
-      </div>
-
-      <div>
-        <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">What happened? *</label>
-        <div class="border border-slate-300 rounded-t-xl bg-slate-50 p-1.5 flex items-center gap-1 border-b-0 text-xs text-slate-600">
-          <button type="button" onclick="feedbackEditorCommand('bold')" class="px-2 py-0.5 rounded hover:bg-slate-200 font-bold">B</button>
-          <button type="button" onclick="feedbackEditorCommand('italic')" class="px-2 py-0.5 rounded hover:bg-slate-200 italic">I</button>
-          <button type="button" onclick="feedbackEditorLink()" class="px-2 py-0.5 rounded hover:bg-slate-200 underline">🔗 Link</button>
-          <label class="px-2 py-0.5 rounded hover:bg-slate-200 cursor-pointer">📷 Image<input type="file" accept="image/png,image/jpeg,image/gif,image/webp" class="hidden" onchange="handleImageInsert(event,'feedback-create-details')"></label>
-        </div>
-        <div id="feedback-create-details" contenteditable="true" onpaste="handleEditorPasteImage(event,'feedback-create-details')" class="rich-editor-content w-full min-h-[120px] border border-slate-300 p-3 rounded-b-xl text-xs focus:ring-2 focus:ring-amber-500 outline-none bg-white leading-relaxed"></div>
-      </div>
-
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div>
-          <label id="feedback-expected-label" class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">What should have happened? <span class="normal-case font-medium text-slate-400">(optional)</span></label>
-          <textarea id="feedback-create-expected" rows="4" class="w-full border border-slate-300 p-2.5 rounded-xl text-xs outline-none focus:ring-2 focus:ring-amber-500 resize-y" placeholder="Describe the expected or correct process."></textarea>
-        </div>
-        <div>
-          <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Impact <span class="normal-case font-medium text-slate-400">(optional)</span></label>
-          <textarea id="feedback-create-impact" rows="4" class="w-full border border-slate-300 p-2.5 rounded-xl text-xs outline-none focus:ring-2 focus:ring-amber-500 resize-y" placeholder="What was affected or what should be understood?"></textarea>
-        </div>
-      </div>
-
-      <div>
-        <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Suggested Action / Guidance <span class="normal-case font-medium text-slate-400">(optional)</span></label>
-        <textarea id="feedback-create-action" rows="3" class="w-full border border-slate-300 p-2.5 rounded-xl text-xs outline-none focus:ring-2 focus:ring-amber-500 resize-y" placeholder="Optional coaching, correction, or next step."></textarea>
-      </div>
-
-      <div id="feedback-submit-error" class="hidden text-xs font-semibold text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2"></div>
-      <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
-        <button type="button" onclick="closeCreateFeedbackModal()" class="px-4 py-2.5 rounded-xl border border-slate-300 text-slate-600 text-xs font-bold hover:bg-slate-50">Cancel</button>
-        <button type="submit" id="feedback-create-submit" class="bg-amber-600 hover:bg-amber-700 text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow-md transition disabled:opacity-50">Submit Feedback</button>
-      </div>
-    </form>
-  </div>
-</div>
-
 <!-- CREATE TASK MODAL -->
 <div id="create-task-modal" class="fixed inset-0 bg-slate-950/70 z-[55] hidden flex items-center justify-center p-4 backdrop-blur-sm overflow-y-auto">
 <div id="create-task-panel" class="task-responsive-panel bg-white rounded-2xl shadow-2xl my-8 border border-slate-200 flex flex-col">
@@ -1881,7 +1680,7 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
     <div><span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">New Task</span><h3 class="text-base font-bold text-slate-900 mt-1">Create Team Task</h3></div>
     <button onclick="closeCreateTaskModal()" class="text-slate-400 hover:text-slate-700 font-bold text-xl">&times;</button>
   </div>
-  <form id="create-task-form" novalidate onsubmit="submitCreateTask(event)" class="task-responsive-scroll p-5 space-y-4 flex-1">
+  <form id="create-task-form" autocomplete="off" novalidate onsubmit="submitCreateTask(event)" class="task-responsive-scroll p-5 space-y-4 flex-1">
     <div id="task-create-parent-banner" class="hidden bg-indigo-50 border border-indigo-200 rounded-xl px-3 py-2 text-[10px] text-indigo-700"><strong>Related to:</strong> <span id="task-create-parent-label"></span></div>
     <div><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Task Title *</label><input id="task-create-title" maxlength="140" required class="w-full border border-slate-300 p-2.5 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Short action title"></div>
     <div><label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Instructions *</label>
@@ -2250,7 +2049,7 @@ Event this weekend <span class="font-medium text-slate-400">(moves it up for Sup
 <div class="border-t border-slate-100 pt-4">
   <div class="flex items-center justify-between gap-3">
     <div><p class="text-xs font-bold text-slate-800">Related Tasks <span id="modal-answer-task-count" class="text-slate-400"></span></p><p class="text-[10px] text-slate-500 mt-0.5">Optional. Add one or more tasks before resolving this question.</p></div>
-    <button type="button" onclick="toggleAnswerFollowUpTask(true)" class="px-3 py-1.5 rounded-lg text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100">+ Add Task</button>
+    <button type="button" onclick="openAnswerModalTaskCreator()" class="px-3 py-1.5 rounded-lg text-[10px] font-bold bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100">+ Add Task</button>
   </div>
   <div id="modal-answer-task-drafts" class="mt-2 space-y-2"></div>
   <div id="modal-followup-task-section" class="hidden mt-3 bg-blue-50/40 border border-blue-200/70 rounded-xl p-4 space-y-3">
@@ -2900,9 +2699,6 @@ function promptInsertLink() {
 }
 
 const SUPPORTED_IMAGE_ATTACHMENT_TYPES = ['image/png','image/jpeg','image/gif','image/webp'];
-const MAX_RICH_IMAGE_UPLOAD_BYTES = 6 * 1024 * 1024;
-const RICH_IMAGE_PREPARE_THRESHOLD_BYTES = 2 * 1024 * 1024;
-const MAX_RICH_IMAGE_DIMENSION = 1920;
 const richImageUploadsInFlight = {};
 
 function setRichImageUploadBusy(editorId, busy) {
@@ -2957,97 +2753,24 @@ function handleEditorPasteImage(e, editorId) {
   const safeRemainder = sanitizeRichHtml(template.innerHTML);
   if (stripHtml(safeRemainder).trim()) execEditorCmd('insertHTML', safeRemainder);
 
-  dataImages.forEach(async (dataUrl, index) => {
+  dataImages.forEach((dataUrl, index) => {
     try {
-      // fetch() lets the browser decode the data URL asynchronously. The old
-      // atob + per-byte loop could block the editor on a large screenshot.
-      uploadRichTextImageFile(await dataImageUrlToFile(dataUrl, index), editorId, null);
+      uploadRichTextImageFile(dataImageUrlToFile(dataUrl, index), editorId, null);
     } catch (err) {
       customAlert('One pasted image could not be prepared for upload. Please use the Image button instead.');
     }
   });
 }
 
-function richEditorForEventTarget(target) {
-  return target && target.nodeType === Node.ELEMENT_NODE
-    ? target.closest('[contenteditable="true"]')
-    : null;
-}
-
-function handleEditorDropImage(e, editorId) {
-  const files = Array.from((e.dataTransfer && e.dataTransfer.files) || [])
-    .filter(file => SUPPORTED_IMAGE_ATTACHMENT_TYPES.includes(String(file.type || '').toLowerCase()));
-  if (!files.length) return;
-  e.preventDefault();
-  files.forEach(file => uploadRichTextImageFile(file, editorId, null));
-}
-
-// Paste attributes cover the established editors. Drop delegation also covers
-// editors created dynamically, without changing browser behaviour for text
-// drops or non-editor targets.
-document.addEventListener('dragover', function(e) {
-  const editor = richEditorForEventTarget(e.target);
-  const items = Array.from((e.dataTransfer && e.dataTransfer.items) || []);
-  if (editor && items.some(item => item.kind === 'file' && String(item.type || '').toLowerCase().startsWith('image/'))) {
-    e.preventDefault();
-  }
-});
-document.addEventListener('drop', function(e) {
-  const editor = richEditorForEventTarget(e.target);
-  if (editor) handleEditorDropImage(e, editor.id);
-});
-
-async function dataImageUrlToFile(dataUrl, index) {
+function dataImageUrlToFile(dataUrl, index) {
   const match = String(dataUrl || '').match(/^data:(image\/(?:png|jpe?g|gif|webp));base64,([\s\S]+)$/i);
   if (!match) throw new Error('Unsupported pasted image.');
   const mime = match[1].toLowerCase().replace('jpg', 'jpeg');
-  const response = await fetch(dataUrl);
-  const bytes = await response.blob();
+  const binary = atob(match[2].replace(/\s+/g, ''));
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
   const ext = mime === 'image/jpeg' ? 'jpg' : mime.split('/')[1];
   return new File([bytes], 'pasted-screenshot-' + (Number(index) + 1) + '.' + ext, { type: mime });
-}
-
-function richImageFileName(fileName, mime) {
-  const extension = mime === 'image/jpeg' ? 'jpg' : mime.split('/')[1];
-  const base = String(fileName || 'screenshot').replace(/\.(png|jpe?g|gif|webp)$/i, '') || 'screenshot';
-  return base + '.' + extension;
-}
-
-function loadImageForRichUpload(file) {
-  return new Promise((resolve, reject) => {
-    const url = URL.createObjectURL(file);
-    const image = new Image();
-    image.onload = () => { URL.revokeObjectURL(url); resolve(image); };
-    image.onerror = () => { URL.revokeObjectURL(url); reject(new Error('The image could not be prepared.')); };
-    image.src = url;
-  });
-}
-
-// Keep the attachment format (including GIF animation) intact where possible.
-// Large static screenshots are resized before base64 conversion, avoiding a
-// multi-megabyte Apps Script RPC without changing the editor/save contract.
-async function prepareRichTextImageFile(file) {
-  const mime = String(file.type || '').toLowerCase();
-  if (mime === 'image/gif') {
-    if (file.size > MAX_RICH_IMAGE_UPLOAD_BYTES) throw new Error('This GIF is too large to upload. Please use a smaller file.');
-    return file;
-  }
-  if (file.size <= RICH_IMAGE_PREPARE_THRESHOLD_BYTES) return file;
-
-  const image = await loadImageForRichUpload(file);
-  const longestSide = Math.max(image.naturalWidth || image.width, image.naturalHeight || image.height);
-  const scale = Math.min(1, MAX_RICH_IMAGE_DIMENSION / Math.max(1, longestSide));
-  const width = Math.max(1, Math.round((image.naturalWidth || image.width) * scale));
-  const height = Math.max(1, Math.round((image.naturalHeight || image.height) * scale));
-  const canvas = document.createElement('canvas');
-  canvas.width = width;
-  canvas.height = height;
-  canvas.getContext('2d').drawImage(image, 0, 0, width, height);
-  const quality = mime === 'image/png' ? undefined : 0.82;
-  const blob = await new Promise(resolve => canvas.toBlob(resolve, mime, quality));
-  if (!blob) throw new Error('The image could not be prepared.');
-  if (blob.size > MAX_RICH_IMAGE_UPLOAD_BYTES) throw new Error('This image is too large after resizing. Please use a smaller image.');
-  return new File([blob], richImageFileName(file.name, mime), { type: mime });
 }
 
 function imageAttachmentContext(editorId) {
@@ -3109,34 +2832,32 @@ function uploadRichTextImageFile(file, editorId, input) {
 
   if (input) input.disabled = true;
   setRichImageUploadBusy(editorId, true);
-  showToast(file.size > RICH_IMAGE_PREPARE_THRESHOLD_BYTES ? 'Preparing image...' : 'Uploading image...');
-  const finishWithError = function(message) {
+  showToast('Uploading image...');
+  const reader = new FileReader();
+  reader.onerror = function() {
     if (input) { input.disabled = false; input.value = ''; }
     setRichImageUploadBusy(editorId, false);
-    customAlert(message);
+    customAlert('The image could not be read. Please try again.');
   };
-  prepareRichTextImageFile(file).then(preparedFile => {
-    showToast('Uploading image...');
-    const reader = new FileReader();
-    reader.onerror = () => finishWithError('The image could not be read. Please try again.');
-    reader.onload = function(evt) {
-      const dataUrl = String(evt.target.result || '');
-      const meta = imageAttachmentContext(editorId);
-      google.script.run.withFailureHandler(err => {
-        finishWithError('Could not upload the image: ' + (err && err.message ? err.message : err));
-      }).withSuccessHandler(res => {
-        if (input) { input.disabled = false; input.value = ''; }
-        setRichImageUploadBusy(editorId, false);
-        try {
-          appendUploadedImageToEditor(editorId, res || {}, URL.createObjectURL(preparedFile));
-          showToast((res && res.warning) ? res.warning : 'Image attached.');
-        } catch (err) {
-          customAlert(err.message || String(err));
-        }
-      }).uploadRichTextImage(dataUrl, preparedFile.name || 'screenshot.png', preparedFile.size, meta.context, meta.recordId, currentUser.email);
-    };
-    reader.readAsDataURL(preparedFile);
-  }).catch(err => finishWithError(err && err.message ? err.message : 'The image could not be prepared.'));
+  reader.onload = function(evt) {
+    const dataUrl = String(evt.target.result || '');
+    const meta = imageAttachmentContext(editorId);
+    google.script.run.withFailureHandler(err => {
+      if (input) { input.disabled = false; input.value = ''; }
+      setRichImageUploadBusy(editorId, false);
+      customAlert('Could not upload the image: ' + (err && err.message ? err.message : err));
+    }).withSuccessHandler(res => {
+      if (input) { input.disabled = false; input.value = ''; }
+      setRichImageUploadBusy(editorId, false);
+      try {
+        appendUploadedImageToEditor(editorId, res || {}, dataUrl);
+        showToast((res && res.warning) ? res.warning : 'Image attached.');
+      } catch (err) {
+        customAlert(err.message || String(err));
+      }
+    }).uploadRichTextImage(dataUrl, file.name || 'screenshot.png', file.size, meta.context, meta.recordId, currentUser.email);
+  };
+  reader.readAsDataURL(file);
 }
 
 function getRichEditorHtml(editorId) {
@@ -4167,11 +3888,6 @@ function finishLogin(member) {
 
   configureAdminWorkspaceAccess();
 
-  // Load the lightweight Feedback feed as soon as the selected profile is ready.
-  // This keeps Pending Acknowledgement and submitted feedback visible without
-  // waiting for the normal polling cycle.
-  refreshFeedbackData(true);
-
   const internalOpt = document.getElementById('answered-scope-internal-opt');
   if (internalOpt) {
     internalOpt.classList.toggle('hidden', !support);
@@ -4412,16 +4128,6 @@ function resetUserSessionDataForIdentitySwitch() {
   persistentTaskNotificationBaselineReady = false;
   knownPersistentTaskNotificationIds = new Set();
   persistentNotificationRefreshInFlight = false;
-
-  // Feedback is identity-scoped too. Clear the previous user's private
-  // feedback immediately and invalidate any in-flight read before the new
-  // profile calls refreshFeedbackData().
-  allFeedback = [];
-  feedbackDataVersion = null;
-  feedbackRefreshQueued = false;
-  feedbackRefreshInFlight = false;
-  feedbackRefreshRequestId++;
-  activeFeedback = null;
 }
 
 function loadLoginAccessMonitor() {
@@ -5045,7 +4751,7 @@ function getQuickReportDateRange(){ if(quickReportRange==='CUSTOM'){ const v=doc
 function renderQuickPersonalReport(){ if(!currentUser)return; const range=getQuickReportDateRange(); const email=String(currentUser.email||'').toLowerCase(); const myQuestion=q=>isOwnerOf(q); const answeredByMe=q=>{ const a=String(q.answeredBy||'').trim().toLowerCase(); return a===email || a===String(currentUser.name||'').trim().toLowerCase(); }; const submitted=allQuestions.filter(q=>myQuestion(q)&&inDateRange(q.created,range)).length; const answers=allQuestions.filter(q=>q.sheet==='Answered'&&answeredByMe(q)&&inDateRange(q.answeredDate,range)).length; const taskCreated=allTasks.filter(t=>String(t.createdByEmail||'').toLowerCase()===email&&inDateRange(t.createdAt,range)).length; const taskCompleted=allTasks.filter(t=>(String(t.completedByEmail||'').toLowerCase()===email||(!t.completedByEmail&&String(t.assignedToEmail||'').toLowerCase()===email))&&t.status==='Completed'&&inDateRange(t.completedAt||t.updatedAt,range)).length; const unread=allQuestions.filter(q=>q.sheet==='Answered'&&isOwnerOf(q)&&!q.isRead).length; const activeTasks=allTasks.filter(t=>String(t.assignedToEmail||'').toLowerCase()===email&&isTaskActive(t)).length; const vals={'quick-stat-submitted':submitted,'quick-stat-answered':answers,'quick-stat-task-created':taskCreated,'quick-stat-task-completed':taskCompleted,'quick-stat-unread':unread,'quick-stat-active-tasks':activeTasks}; Object.entries(vals).forEach(([id,v])=>{const el=document.getElementById(id);if(el)el.innerText=v;}); }
 function cstDateBoundary(ymd,end){ const parts=String(ymd).split('-').map(Number); if(parts.length!==3)return null; const noon=new Date(Date.UTC(parts[0],parts[1]-1,parts[2],12,0,0)); return cstDayBoundary(noon,!!end); }
 
-const APP_TAB_NAMES = ['coordinator', 'feedback', 'peer', 'answered', 'all-tickets', 'tasks', 'supervisor', 'reporting', 'team'];
+const APP_TAB_NAMES = ['coordinator', 'peer', 'answered', 'all-tickets', 'tasks', 'supervisor', 'reporting', 'team'];
 
 function primaryAreaForTab(name) {
   if (name === 'peer' || name === 'answered' || name === 'all-tickets' || name === 'tasks') return 'home';
@@ -5093,7 +4799,6 @@ function activateTabShell(name) {
   const secondaryTabs = [
     { id: 'subtab-coordinator', tab: 'coordinator' },
     { id: 'tab-peer', tab: 'peer' },
-    { id: 'tab-feedback', tab: 'feedback' },
     { id: 'tab-answered', tab: 'answered' },
     { id: 'tab-all-tickets', tab: 'all-tickets' },
     { id: 'subtab-tasks', tab: 'tasks' }
@@ -5122,7 +4827,6 @@ function switchTab(name) {
   // Feeds skipped while Supervisor Desk is active refresh immediately when
   // their own data becomes visible.
   if (name === 'tasks' || name === 'answered' || name === 'reporting') refreshTasksData();
-  if (name === 'feedback') refreshFeedbackData(true);
   if (name === 'peer' || name === 'reporting') refreshPeerQuestionsData();
 
   // Supervisor Desk uses a small open-question feed. When another tab opens,
@@ -5141,7 +4845,6 @@ function switchTab(name) {
 
 function renderCurrentTab() {
   if (currentTab === 'coordinator') renderCoordinatorQuestions();
-  else if (currentTab === 'feedback') renderFeedbackTab();
   else if (currentTab === 'peer') renderPeerQuestions();
   else if (currentTab === 'answered') renderAnsweredTab();
   else if (currentTab === 'all-tickets') renderAllTickets();
@@ -5529,8 +5232,6 @@ function refreshData() {
   // Tasks and Peer Questions have independent versions and are not displayed
   // in Supervisor Desk. Avoid making those sheet reads compete with the live
   // ticket queue. They refresh normally as soon as their own tab is opened.
-  refreshFeedbackData(false);
-
   if (!supervisorOnly) {
     refreshTasksData();
     if (currentTab !== 'reporting') refreshPeerQuestionsData();
@@ -6002,13 +5703,6 @@ async function handleQuestionSubmit(e) {
 
 let homeMetricActions = {};
 let homeListDestinations = {};
-let allFeedback = [];
-let feedbackDataVersion = null;
-let feedbackFilter = 'ALL';
-let activeFeedback = null;
-let feedbackRefreshInFlight = false;
-let feedbackRefreshQueued = false;
-let feedbackRefreshRequestId = 0;
 
 function closeHomeCreateMenu() {
   const menu = document.getElementById('home-create-menu');
@@ -6377,7 +6071,6 @@ function renderAdminHomeDashboard() {
 
 function renderMyWorkDashboard() {
   if (!currentUser || !document.getElementById('my-work-dashboard')) return;
-  renderHomeFeedbackPanel();
   homeMetricActions = {};
   homeListDestinations = {};
   const title = document.getElementById('home-dashboard-title');
@@ -6959,12 +6652,31 @@ function openAnsweredTicketTaskCreator() {
   if (!activeViewQuestion || !isSupportUser(currentUser)) return;
   const q = Object.assign({}, activeViewQuestion);
   closeViewModal();
-  // Keep the Ticket as the parent only. Do not pre-fill the separate
-  // Event / Client / Talent / CR / TR relationship fields.
+  // Answered tickets use the exact same clean Create Task workflow as active
+  // tickets. The Ticket is the parent only. Do not invoke the legacy
+  // answered-ticket/task prefill path.
   openCreateTaskModal('Question', q.ticketId, {
     category: q.category || 'General / Other',
     parentLabel: q.ticketId || 'Ticket'
-  });
+  }, { launchSource: 'ticket' });
+}
+
+// The Answer modal used to contain a separate legacy "follow-up task" form.
+// Keep the old backend compatibility code, but route the visible + Add Task
+// action through the single current Create Task model.
+function openAnswerModalTaskCreator() {
+  if (!activeModalTicketId || !isSupportUser(currentUser)) return;
+  const ticketId = String(activeModalTicketId);
+  const q = allQuestions.find(row =>
+    row.sheet === 'Questions Tracker' && String(row.ticketId) === ticketId
+  );
+  const categoryEl = document.getElementById('modal-question-category');
+  const category = (q && q.category) || (categoryEl && categoryEl.value) || 'General / Other';
+
+  openCreateTaskModal('Question', ticketId, {
+    category: category,
+    parentLabel: ticketId || 'Ticket'
+  }, { launchSource: 'ticket' });
 }
 function toggleAnsweredStatusPanel(force) {
   const p = document.getElementById('vmodal-status-panel');
@@ -7336,12 +7048,17 @@ function createRelatedTaskFromActiveTicket() {
   if (!activeTicketDetailQuestion) return;
   const q = Object.assign({}, activeTicketDetailQuestion);
   closeTicketDetailModal();
-  // The Ticket is the parent. Related Event / Client / Talent / CR / TR
-  // remains a separate, user-selectable Task field.
+
+  // Ticket -> Add Task uses the exact same Create Task model. The Ticket is
+  // only the parent connection. Do not carry Ticket Event / Client / Talent /
+  // CR / TR, Relationship, Related Link, title, instructions, or assignee
+  // values into the new Task. Category is the one intentional Ticket-derived
+  // value because it is based on the Ticket's detected category/keywords and
+  // remains editable in the Task form.
   openCreateTaskModal('Question', q.ticketId, {
     category: q.category || 'General / Other',
     parentLabel: q.ticketId || 'Ticket'
-  });
+  }, { launchSource: 'ticket' });
 }
 function openRelatedTaskFromTicketDetail(taskId) {
   if (activeTicketDetailQuestion) pushDetailNavigation({ type:'ticket', sheet:activeTicketDetailQuestion.sheet || 'Questions Tracker', id:activeTicketDetailQuestion.ticketId });
@@ -9121,7 +8838,10 @@ function captureCreateTaskDraftForTicket(){
     relatedEntityType:document.getElementById('task-create-related-type').value||'',
     relatedLink:(document.getElementById('task-create-related-link').value||'').trim(),
     dueDate:document.getElementById('task-create-due').value||'',
-    needAttentionToday:document.getElementById('task-create-attention-today')?.checked===true
+    needAttentionToday:document.getElementById('task-create-attention-today')?.checked===true,
+    // Server-side guard for Ticket -> + Add Task. A normal Create Task with a
+    // manually selected Related Ticket does not set this flag.
+    cleanParentTicketContext:createTaskLaunchSource==='ticket'
   };
 }
 function startNewTicketFromCreateTask(){
@@ -9165,11 +8885,15 @@ function selectCreateTaskRelatedTicket(index){
 }
 function clearCreateTaskRelatedTicket(){resetCreateTaskTicketSearch();}
 
-function openCreateTaskModal(parentType, parentId, defaults) {
+let createTaskLaunchSource = '';
+function openCreateTaskModal(parentType, parentId, defaults, launchOptions) {
   if (!currentUser) return;
   createTaskParentContext = (parentType && parentId) ? { parentType:String(parentType), parentId:String(parentId) } : null;
   defaults = defaults || {};
-  document.getElementById('create-task-form').reset();
+  launchOptions = launchOptions || {};
+  createTaskLaunchSource = String(launchOptions.launchSource || '').trim().toLowerCase();
+  const createTaskForm=document.getElementById('create-task-form');
+  if(createTaskForm)createTaskForm.reset();
   clearRichEditor('task-create-instructions');
   resetCreateTaskTicketSearch();
   // Always start the standard Task form with a clean related-context section.
@@ -9196,10 +8920,29 @@ function openCreateTaskModal(parentType, parentId, defaults) {
   const banner=document.getElementById('task-create-parent-banner'), label=document.getElementById('task-create-parent-label');
   if(banner&&label){ banner.classList.toggle('hidden',!createTaskParentContext); label.innerText=createTaskParentContext ? ((createTaskParentContext.parentType==='Task'?'Task: ':'Related Ticket: ')+(defaults.parentLabel||createTaskParentContext.parentId)) : ''; }
   const ticketWrap=document.getElementById('task-create-ticket-search-wrap'); if(ticketWrap)ticketWrap.classList.toggle('hidden',!!createTaskParentContext);
+  // A Ticket-launched Task must remain a clean Create Task form. Explicitly
+  // clear every user-entered Task field after browser/form reset and defaults
+  // are applied. This is intentionally scoped to Ticket -> Add Task so other
+  // legitimate Task -> Task follow-up defaults continue to work.
+  if(launchOptions.launchSource==='ticket'){
+    const titleInput=document.getElementById('task-create-title');
+    const assigneeInput=document.getElementById('task-create-assignee');
+    const relatedNameInput=document.getElementById('task-create-related-name');
+    const relatedTypeInput=document.getElementById('task-create-related-type');
+    const relatedLinkInput=document.getElementById('task-create-related-link');
+    const attentionInput=document.getElementById('task-create-attention-today');
+    if(titleInput)titleInput.value='';
+    if(assigneeInput)assigneeInput.value='';
+    if(relatedNameInput)relatedNameInput.value='';
+    if(relatedTypeInput)relatedTypeInput.value='';
+    if(relatedLinkInput)relatedLinkInput.value='';
+    if(attentionInput)attentionInput.checked=false;
+    clearRichEditor('task-create-instructions');
+  }
   syncTaskCreateRelationshipFields();
   document.getElementById('create-task-modal').classList.remove('hidden');
 }
-function closeCreateTaskModal(){ document.getElementById('create-task-modal').classList.add('hidden'); clearRichEditor('task-create-instructions'); resetCreateTaskTicketSearch(); createTaskParentContext=null; }
+function closeCreateTaskModal(){ document.getElementById('create-task-modal').classList.add('hidden'); clearRichEditor('task-create-instructions'); resetCreateTaskTicketSearch(); createTaskParentContext=null; createTaskLaunchSource=''; }
 function submitCreateTask(e){
   e.preventDefault();
   if(!currentUser)return;
@@ -12301,530 +12044,6 @@ async function openPeerEscalate(){
   const email=await customSelect('Escalate this Peer Question to Support:',options,{okLabel:'Escalate'});
   if(!email)return;
   google.script.run.withFailureHandler(e=>showToast('Could not escalate: '+(e&&e.message?e.message:e))).withSuccessHandler(()=>{showToast('Escalated to Support.');closePeerDetailModal();refreshPeerQuestionsData(true);refreshData();}).escalatePeerQuestion(activePeerQuestion.id,email,currentUser.email);
-}
-
-
-
-function refreshFeedbackData(force) {
-  if (!currentUser) return;
-  if (feedbackRefreshInFlight) {
-    feedbackRefreshQueued = feedbackRefreshQueued || !!force;
-    return;
-  }
-
-  const requestingUser = currentUser;
-  const requestId = ++feedbackRefreshRequestId;
-  feedbackRefreshInFlight = true;
-
-  const finish = () => {
-    // Ignore callbacks from an older profile/session request. This matters
-    // when Admin Test Mode switches from one effective user to another while
-    // the previous Feedback read is still in flight.
-    if (requestId !== feedbackRefreshRequestId) return;
-    feedbackRefreshInFlight = false;
-    if (feedbackRefreshQueued && currentUser === requestingUser) {
-      feedbackRefreshQueued = false;
-      setTimeout(() => refreshFeedbackData(true), 0);
-    }
-  };
-
-  google.script.run
-    .withFailureHandler(err => {
-      if (requestId !== feedbackRefreshRequestId) return;
-      finish();
-      const message = err && err.message ? err.message : String(err || 'Unknown error');
-      console.error('Feedback refresh failed:', err);
-      showToast('Feedback could not be loaded: ' + message);
-    })
-    .withSuccessHandler(result => {
-      if (requestId !== feedbackRefreshRequestId || currentUser !== requestingUser || !result) {
-        if (requestId === feedbackRefreshRequestId) finish();
-        return;
-      }
-      allFeedback = result.data || [];
-      feedbackDataVersion = result.version || null;
-      window.feedbackLastDiagnostics = result.diagnostics || null;
-
-      if (result.diagnostics &&
-          Number(result.diagnostics.dataRowCount || 0) > 0 &&
-          Number(result.diagnostics.visibleCount || 0) === 0) {
-        console.error('Feedback rows exist but none are visible to this profile:', result.diagnostics);
-        showToast('Feedback exists in the sheet but is not visible to this profile. Check the Feedback visibility mapping.');
-      }
-
-      const pendingCount = (result.pendingAcknowledgement || []).length;
-      const ticker = document.getElementById('feedback-ticker');
-      if (ticker) {
-        ticker.innerText = pendingCount;
-        ticker.classList.toggle('hidden', pendingCount === 0);
-        ticker.classList.toggle('flex', pendingCount > 0);
-      }
-      renderHomeFeedbackPanel();
-      if (currentTab === 'feedback') renderFeedbackTab();
-      finish();
-    })
-    .getFeedbackData(currentUser.email);
-}
-
-function feedbackStatusClass(status) {
-  if (status === 'Pending Acknowledgement') return 'bg-amber-50 text-amber-700 border-amber-200';
-  if (status === 'Acknowledged') return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-  if (status === 'Actioned') return 'bg-blue-50 text-blue-700 border-blue-200';
-  if (status === 'Closed') return 'bg-slate-100 text-slate-600 border-slate-200';
-  return 'bg-slate-50 text-slate-600 border-slate-200';
-}
-
-function feedbackListItem(f) {
-  const me = String(currentUser && currentUser.email || '').toLowerCase();
-  const isRecipient = String(f.feedbackForEmail || '').toLowerCase() === me;
-  const isMine = String(f.submittedByEmail || '').toLowerCase() === me;
-  const button = document.createElement('button');
-  button.type = 'button';
-  button.className = 'w-full text-left px-4 py-4 hover:bg-slate-50 transition flex items-start justify-between gap-4';
-  const who = isRecipient ? 'For you' : (isMine ? 'Submitted by you' : 'Visible to you');
-  button.innerHTML =
-    '<div class="min-w-0 flex-1">' +
-      '<div class="flex flex-wrap items-center gap-2">' +
-        '<span class="text-xs font-bold text-slate-900">' + esc(f.category || 'Feedback') + '</span>' +
-        '<span class="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border ' + feedbackStatusClass(f.status) + '">' + esc(f.status || 'New') + '</span>' +
-      '</div>' +
-      '<p class="text-[10px] text-slate-500 mt-1">' + esc(who) + ' · ' + esc(f.feedbackId) + ' · ' + esc(formatCSTDateTime(f.createdAt)) + '</p>' +
-      '<p class="text-xs text-slate-600 mt-2 line-clamp-2">' + esc(stripHtml(f.details || '').slice(0, 180)) + '</p>' +
-    '</div>' +
-    '<span class="text-[11px] font-bold text-amber-700 whitespace-nowrap">Review →</span>';
-  button.onclick = () => openFeedbackDetail(f.feedbackId);
-  return button;
-}
-
-function renderHomeFeedbackPanel() {
-  const panel = document.getElementById('home-feedback-panel');
-  if (!panel || !currentUser) return;
-  const me = String(currentUser.email || '').toLowerCase();
-  const pending = allFeedback.filter(f => String(f.feedbackForEmail || '').toLowerCase() === me && f.status === 'Pending Acknowledgement');
-  const mine = allFeedback.filter(f => String(f.submittedByEmail || '').toLowerCase() === me);
-  const acknowledged = allFeedback.filter(f => f.status === 'Acknowledged' && (String(f.feedbackForEmail || '').toLowerCase() === me || String(f.submittedByEmail || '').toLowerCase() === me));
-  const countEl = id => document.getElementById(id);
-  if (countEl('home-feedback-pending-count')) countEl('home-feedback-pending-count').innerText = pending.length;
-  if (countEl('home-feedback-submitted-count')) countEl('home-feedback-submitted-count').innerText = mine.length;
-  if (countEl('home-feedback-ack-count')) countEl('home-feedback-ack-count').innerText = acknowledged.length;
-  if (countEl('home-feedback-total-count')) countEl('home-feedback-total-count').innerText = allFeedback.length;
-  const help = countEl('home-feedback-help');
-  if (help) help.innerText = pending.length ? 'You have feedback waiting for acknowledgement.' : 'No feedback is waiting for acknowledgement.';
-  const list = countEl('home-feedback-list');
-  if (!list) return;
-  list.innerHTML = '';
-  const items = (pending.length ? pending : allFeedback.filter(f => String(f.submittedByEmail || '').toLowerCase() === me)).slice(0,4);
-  if (!items.length) {
-    list.innerHTML = '<div class="p-5 text-center text-xs text-slate-400">No feedback items to show yet.</div>';
-    return;
-  }
-  items.forEach(f => list.appendChild(feedbackListItem(f)));
-}
-
-function openFeedbackHomeFilter(filter) {
-  feedbackFilter = filter || 'ALL';
-  switchTab('feedback');
-  const select = document.getElementById('feedback-filter');
-  if (select) select.value = feedbackFilter;
-  renderFeedbackTab();
-}
-
-function setFeedbackFilter(filter) {
-  feedbackFilter = filter || 'ALL';
-  const select = document.getElementById('feedback-filter');
-  if (select) select.value = feedbackFilter;
-  renderFeedbackTab();
-}
-
-function renderFeedbackTab() {
-  const list = document.getElementById('feedback-list');
-  if (!list || !currentUser) return;
-  const me = String(currentUser.email || '').toLowerCase();
-  const filter = String((document.getElementById('feedback-filter') || {}).value || feedbackFilter || 'ALL');
-  feedbackFilter = filter;
-  const search = String((document.getElementById('feedback-search') || {}).value || '').trim().toLowerCase();
-  const pending = allFeedback.filter(f => String(f.feedbackForEmail || '').toLowerCase() === me && f.status === 'Pending Acknowledgement');
-  const mine = allFeedback.filter(f => String(f.submittedByEmail || '').toLowerCase() === me);
-  const ack = allFeedback.filter(f => f.status === 'Acknowledged' && (String(f.feedbackForEmail || '').toLowerCase() === me || String(f.submittedByEmail || '').toLowerCase() === me));
-  const visible = allFeedback.filter(f => {
-    if (filter === 'PENDING' && !(String(f.feedbackForEmail || '').toLowerCase() === me && f.status === 'Pending Acknowledgement')) return false;
-    if (filter === 'MINE' && String(f.submittedByEmail || '').toLowerCase() !== me) return false;
-    if (filter === 'ACK' && !(f.status === 'Acknowledged' && (String(f.feedbackForEmail || '').toLowerCase() === me || String(f.submittedByEmail || '').toLowerCase() === me))) return false;
-    if (search && ![f.feedbackId,f.feedbackType,f.category,f.reason,f.feedbackFor,f.submittedBy,f.status,stripHtml(f.details||'')].join(' ').toLowerCase().includes(search)) return false;
-    return true;
-  });
-  const set = (id,v) => { const el=document.getElementById(id); if(el)el.innerText=String(v); };
-  set('feedback-stat-pending',pending.length);
-  set('feedback-stat-submitted',mine.length);
-  set('feedback-stat-ack',ack.length);
-  set('feedback-stat-total',allFeedback.length);
-  list.innerHTML = '';
-  if (!visible.length) {
-    let diagnostic = '';
-    if (window.feedbackLastDiagnostics) {
-      const d = window.feedbackLastDiagnostics;
-      diagnostic =
-        '<div class="mt-2 text-[10px] text-slate-400">' +
-        'Server rows: ' + esc(String(d.dataRowCount || 0)) +
-        ' · Visible: ' + esc(String(d.visibleCount || 0)) +
-        ' · Last ID: ' + esc(String(d.latestFeedbackId || 'none')) +
-        '</div>';
-    }
-    list.innerHTML =
-      '<div class="p-8 text-center text-xs text-slate-400">No feedback matches this view.' +
-      diagnostic +
-      '</div>';
-    return;
-  }
-  visible.forEach(f => list.appendChild(feedbackListItem(f)));
-}
-
-function openFeedbackDetail(feedbackId) {
-  if (!feedbackId || !currentUser) return;
-  const modal=document.getElementById('feedback-detail-modal');
-  if (!modal) return;
-  modal.classList.remove('hidden');
-  document.getElementById('feedback-detail-title').innerText='Loading feedback…';
-  document.getElementById('feedback-detail-meta').innerText='';
-  document.getElementById('feedback-detail-body').innerHTML='<div class="p-8 text-center text-xs text-slate-400">Loading…</div>';
-  google.script.run
-    .withFailureHandler(err => {
-      closeFeedbackDetail();
-      showToast('Could not open feedback: ' + (err && err.message ? err.message : err));
-    })
-    .withSuccessHandler(f => {
-      if (!f) return;
-      activeFeedback=f;
-      renderFeedbackDetail();
-    })
-    .getFeedbackDetail(feedbackId,currentUser.email);
-}
-
-function renderFeedbackDetail() {
-  const f=activeFeedback;
-  if (!f) return;
-  const me=String(currentUser&&currentUser.email||'').toLowerCase();
-  const recipient=String(f.feedbackForEmail||'').toLowerCase()===me;
-  const updates=f.updates||[];
-  document.getElementById('feedback-detail-title').innerText=f.category||'Feedback';
-  document.getElementById('feedback-detail-meta').innerText=f.feedbackId+' · '+f.feedbackType+' · '+formatCSTDateTime(f.createdAt);
-  const related=f.relatedId ? '<div><p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Related '+esc(f.relatedType||'Record')+'</p><p class="text-xs font-semibold text-slate-800 mt-1">'+esc(f.relatedId)+'</p>'+(f.relatedLink?'<a class="text-xs text-blue-700 hover:underline break-all" href="'+esc(f.relatedLink)+'" target="_blank" rel="noopener noreferrer">'+esc(f.relatedLink)+'</a>':'')+'</div>':'';
-  const people =
-    '<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">' +
-      '<div><p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Submitted By</p><p class="text-xs font-semibold text-slate-800 mt-1">'+esc(f.submittedBy||f.submittedByEmail)+'</p></div>' +
-      (f.feedbackFor ? '<div><p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Feedback For</p><p class="text-xs font-semibold text-slate-800 mt-1">'+esc(f.feedbackFor)+'</p></div>' : '') +
-    '</div>';
-  const section=(label,html)=>'<div><p class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">'+label+'</p><div class="text-xs text-slate-700">'+html+'</div></div>';
-  const details=section('What happened?',renderStoredRichHtml(f.details||''));
-  const expected=f.expectedProcess?section(f.feedbackType==='IT / Bug Feedback'?'Expected Behavior':'What should have happened?',esc(f.expectedProcess).replace(/\n/g,'<br>')):'';
-  const impact=f.impact?section('Impact',esc(f.impact).replace(/\n/g,'<br>')):'';
-  const action=f.suggestedAction?section('Suggested Action / Guidance',esc(f.suggestedAction).replace(/\n/g,'<br>')):'';
-  const reason=f.reason?section('Reason',esc(f.reason)):'';
-  const updatesHtml=updates.length
-    ? '<div class="border-t border-slate-100 pt-4"><p class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">Questions / Updates</p>'+updates.map(u=>'<div class="rounded-xl border border-slate-200 bg-slate-50 p-3 mb-2"><div class="flex justify-between gap-3"><span class="text-[11px] font-bold text-slate-800">'+esc(u.by||'Team Member')+'</span><span class="text-[10px] text-slate-400">'+esc(formatCSTDateTime(u.createdAt))+'</span></div><p class="text-xs text-slate-700 mt-1 whitespace-pre-wrap">'+esc(u.message||'')+'</p></div>').join('')+'</div>'
-    : '';
-  document.getElementById('feedback-detail-body').innerHTML=people+related+details+reason+expected+impact+action+updatesHtml;
-  document.getElementById('feedback-detail-status').innerHTML='<span class="px-2 py-1 rounded-md border '+feedbackStatusClass(f.status)+'">'+esc(f.status)+'</span>'+(f.acknowledgedAt?' <span class="text-[10px] text-slate-400 ml-2">Acknowledged '+esc(formatCSTDateTime(f.acknowledgedAt))+'</span>':'');
-  const ackBtn=document.getElementById('feedback-ack-btn');
-  if(ackBtn) ackBtn.classList.toggle('hidden',!(recipient && f.status==='Pending Acknowledgement'));
-  const qBtn=document.getElementById('feedback-ask-question-btn');
-  if(qBtn) qBtn.classList.toggle('hidden',false);
-}
-
-function closeFeedbackDetail() {
-  const modal=document.getElementById('feedback-detail-modal');
-  if(modal) modal.classList.add('hidden');
-  activeFeedback=null;
-}
-
-function acknowledgeCurrentFeedback() {
-  if(!activeFeedback || !currentUser) return;
-  const btn=document.getElementById('feedback-ack-btn');
-  if(btn){btn.disabled=true;btn.innerText='Acknowledging…';}
-  google.script.run.withFailureHandler(err=>{
-    if(btn){btn.disabled=false;btn.innerText='Acknowledge Feedback';}
-    showToast('Could not acknowledge feedback: '+(err&&err.message?err.message:err));
-  }).withSuccessHandler(result=>{
-    if(btn){btn.disabled=false;btn.innerText='Acknowledge Feedback';}
-    if(result&&result.feedback){activeFeedback=result.feedback;renderFeedbackDetail();}
-    refreshFeedbackData(true);
-    showToast('Feedback acknowledged.');
-  }).acknowledgeFeedback(activeFeedback.feedbackId,currentUser.email);
-}
-
-async function askCurrentFeedbackQuestion() {
-  if(!activeFeedback || !currentUser) return;
-  const question=await customPrompt('Ask a question about this feedback:',{placeholder:'What would you like clarified?',okLabel:'Send Question'});
-  if(question===null || !String(question).trim()) return;
-  google.script.run.withFailureHandler(err=>{
-    showToast('Could not send question: '+(err&&err.message?err.message:err));
-  }).withSuccessHandler(()=>{
-    showToast('Question added to Feedback.');
-    openFeedbackDetail(activeFeedback.feedbackId);
-  }).askFeedbackQuestion(activeFeedback.feedbackId,question,currentUser.email);
-}
-
-// ============================================================================
-// FEEDBACK - PHASE 1B: CREATE FEEDBACK
-// ============================================================================
-let feedbackCreateOptions = null;
-let feedbackCreateLoading = false;
-let feedbackCreateSubmitting = false;
-
-function feedbackEditorCommand(command) {
-  const editor = document.getElementById('feedback-create-details');
-  if (!editor) return;
-  editor.focus();
-  document.execCommand(command, false, null);
-}
-
-function feedbackEditorLink() {
-  const editor = document.getElementById('feedback-create-details');
-  if (!editor) return;
-  editor.focus();
-  const url = window.prompt('Enter the link URL');
-  if (!url) return;
-  if (!/^https?:\/\/[^\s]+$/i.test(url.trim())) {
-    showToast('Enter a valid link starting with http:// or https://.');
-    return;
-  }
-  document.execCommand('createLink', false, url.trim());
-}
-
-function resetCreateFeedbackForm() {
-  const form = document.getElementById('create-feedback-form');
-  if (form) form.reset();
-  clearRichEditor('feedback-create-details');
-  const error = document.getElementById('feedback-submit-error');
-  if (error) { error.innerText = ''; error.classList.add('hidden'); }
-  const recipient = document.getElementById('feedback-create-recipient');
-  if (recipient) recipient.innerHTML = '<option value="">-- Select team member --</option>';
-  const category = document.getElementById('feedback-create-category');
-  if (category) category.innerHTML = '';
-  const reason = document.getElementById('feedback-create-reason');
-  if (reason) reason.innerHTML = '';
-  syncFeedbackRelatedFields();
-}
-
-function syncFeedbackTypeAvailability() {
-  const type = document.getElementById('feedback-create-type');
-  const help = document.getElementById('feedback-type-help');
-  const recipientWrap = document.getElementById('feedback-recipient-wrap');
-  const reasonWrap = document.getElementById('feedback-reason-wrap');
-  const expected = document.getElementById('feedback-expected-label');
-  if (!type) return;
-  const isIt = type.value === 'IT / Bug Feedback';
-  if (recipientWrap) recipientWrap.classList.toggle('hidden', isIt);
-  if (recipientWrap) {
-    const recipient = document.getElementById('feedback-create-recipient');
-    if (recipient) recipient.required = !isIt;
-  }
-  if (reasonWrap) reasonWrap.classList.toggle('hidden', isIt);
-  if (expected) expected.innerHTML = (isIt ? 'Expected Behavior' : 'What should have happened?') + ' <span class="normal-case font-medium text-slate-400">(optional)</span>';
-  if (help) help.innerText = isIt
-    ? 'Admin-only IT / Bug Feedback is tracked separately from Team Feedback.'
-    : 'Team Feedback is private and stays pending until the recipient acknowledges that they reviewed and understood it.';
-}
-
-function syncFeedbackCreateType() {
-  syncFeedbackTypeAvailability();
-  const type = document.getElementById('feedback-create-type');
-  const category = document.getElementById('feedback-create-category');
-  const reason = document.getElementById('feedback-create-reason');
-  if (!type || !category || !reason || !feedbackCreateOptions) return;
-  const isIt = type.value === 'IT / Bug Feedback';
-  const categories = isIt ? feedbackCreateOptions.itCategories : feedbackCreateOptions.teamCategories;
-  category.innerHTML = '<option value="">-- Select category --</option>' + (categories || []).map(x => '<option value="' + esc(x) + '">' + esc(x) + '</option>').join('');
-  reason.innerHTML = '<option value="">Select reason</option>';
-  syncFeedbackReasonOptions();
-}
-
-function syncFeedbackReasonOptions() {
-  const type = document.getElementById('feedback-create-type');
-  const category = document.getElementById('feedback-create-category');
-  const reason = document.getElementById('feedback-create-reason');
-  if (!type || !category || !reason || !feedbackCreateOptions) return;
-  if (type.value === 'IT / Bug Feedback') {
-    reason.innerHTML = '<option value="">Not used for IT / Bug Feedback</option>';
-    reason.disabled = true;
-    return;
-  }
-  reason.disabled = false;
-  const choices = (feedbackCreateOptions.teamReasons || {})[category.value] || [];
-  reason.innerHTML = '<option value="">Select reason</option>' + choices.map(x => '<option value="' + esc(x) + '">' + esc(x) + '</option>').join('');
-}
-
-function syncFeedbackRelatedFields() {
-  const type = document.getElementById('feedback-create-related-type');
-  const id = document.getElementById('feedback-create-related-id');
-  const link = document.getElementById('feedback-create-related-link');
-  const label = document.getElementById('feedback-related-link-label');
-  const idLabel = document.getElementById('feedback-related-id-label');
-  const hasRelated = !!String(type && type.value || '').trim();
-  if (idLabel) idLabel.innerHTML = hasRelated
-    ? 'Related ' + esc(type.value) + ' <span class="normal-case font-medium text-slate-400">(optional)</span>'
-    : 'Related Name / ID <span class="normal-case font-medium text-slate-400">(optional)</span>';
-  if (label) label.innerHTML = hasRelated
-    ? 'Related ' + esc(type.value) + ' Link <span class="normal-case font-medium text-slate-400">(optional)</span>'
-    : 'Related Link <span class="normal-case font-medium text-slate-400">(optional)</span>';
-  if (link) link.placeholder = hasRelated ? 'https://... (optional)' : 'https://...';
-}
-
-function populateFeedbackRecipients() {
-  const select = document.getElementById('feedback-create-recipient');
-  if (!select) return;
-  const recipients = (feedbackCreateOptions && feedbackCreateOptions.recipients) || [];
-  const actorEmail = String(currentUser && currentUser.email || '').toLowerCase();
-  select.innerHTML = '<option value="">-- Select team member --</option>' + recipients
-    .filter(m => String(m.email || '').toLowerCase() !== actorEmail)
-    .map(m => '<option value="' + esc(m.email) + '">' + esc(m.name) + ' — ' + esc(m.title) + '</option>')
-    .join('');
-}
-
-function openCreateFeedbackModal() {
-  if (!currentUser) return;
-  const modal = document.getElementById('create-feedback-modal');
-  if (!modal || feedbackCreateLoading) return;
-  resetCreateFeedbackForm();
-  feedbackCreateLoading = true;
-  modal.classList.remove('hidden');
-  google.script.run
-    .withFailureHandler(err => {
-      feedbackCreateLoading = false;
-      const message = err && err.message ? err.message : String(err || 'Could not load Feedback options.');
-      closeCreateFeedbackModal();
-      showToast(message);
-    })
-    .withSuccessHandler(options => {
-      feedbackCreateLoading = false;
-      feedbackCreateOptions = options || {};
-      const type = document.getElementById('feedback-create-type');
-      const isAdmin = isAdminUser(currentUser);
-      if (type) {
-        type.value = isAdmin && feedbackCreateOptions.canSubmitItFeedback ? 'Team Feedback' : 'Team Feedback';
-        const itOption = Array.from(type.options).find(o => o.value === 'IT / Bug Feedback');
-        if (itOption) itOption.disabled = !(isAdmin && feedbackCreateOptions.canSubmitItFeedback);
-        type.disabled = false;
-      }
-      populateFeedbackRecipients();
-      syncFeedbackCreateType();
-      syncFeedbackRelatedFields();
-    })
-    .getFeedbackCreateOptions(currentUser.email);
-}
-
-function closeCreateFeedbackModal() {
-  const modal = document.getElementById('create-feedback-modal');
-  if (modal) modal.classList.add('hidden');
-  feedbackCreateLoading = false;
-  feedbackCreateSubmitting = false;
-}
-
-function submitCreateFeedback(event) {
-  event.preventDefault();
-  if (!currentUser || feedbackCreateSubmitting) return;
-  const type = String(document.getElementById('feedback-create-type').value || 'Team Feedback').trim();
-  const recipient = String(document.getElementById('feedback-create-recipient').value || '').trim();
-  const category = String(document.getElementById('feedback-create-category').value || '').trim();
-  const reason = String(document.getElementById('feedback-create-reason').value || '').trim();
-  const relatedType = String(document.getElementById('feedback-create-related-type').value || '').trim();
-  const relatedId = String(document.getElementById('feedback-create-related-id').value || '').trim();
-  const relatedLink = String(document.getElementById('feedback-create-related-link').value || '').trim();
-  const details = getRichEditorHtml('feedback-create-details');
-  const detailText = getRichEditorText('feedback-create-details');
-  const expected = String(document.getElementById('feedback-create-expected').value || '').trim();
-  const impact = String(document.getElementById('feedback-create-impact').value || '').trim();
-  const suggestedAction = String(document.getElementById('feedback-create-action').value || '').trim();
-  const error = document.getElementById('feedback-submit-error');
-  const btn = document.getElementById('feedback-create-submit');
-
-  if ((Number(richImageUploadsInFlight['feedback-create-details']) || 0) > 0) {
-    showToast('Please wait for the image upload to finish.');
-    return;
-  }
-  if (!detailText) {
-    if (error) { error.innerText = 'What happened? is required.'; error.classList.remove('hidden'); }
-    document.getElementById('feedback-create-details').focus();
-    return;
-  }
-  if (type === 'Team Feedback' && !recipient) {
-    if (error) { error.innerText = 'Please select who the feedback is for.'; error.classList.remove('hidden'); }
-    document.getElementById('feedback-create-recipient').focus();
-    return;
-  }
-  if (!category) {
-    if (error) { error.innerText = 'Please choose a Feedback category.'; error.classList.remove('hidden'); }
-    document.getElementById('feedback-create-category').focus();
-    return;
-  }
-  if (relatedId && !relatedType) {
-    if (error) { error.innerText = 'Choose a Related To type for the related record.'; error.classList.remove('hidden'); }
-    document.getElementById('feedback-create-related-type').focus();
-    return;
-  }
-  if (relatedType && !relatedId) {
-    if (error) { error.innerText = 'Enter the Related Name / ID or clear Related To.'; error.classList.remove('hidden'); }
-    document.getElementById('feedback-create-related-id').focus();
-    return;
-  }
-  if (relatedId && !relatedLink) {
-    if (error) { error.innerText = 'Please add the Related Link when a related record is provided.'; error.classList.remove('hidden'); }
-    document.getElementById('feedback-create-related-link').focus();
-    return;
-  }
-  if (relatedLink && !/^https?:\/\/[^\s]+$/i.test(relatedLink)) {
-    if (error) { error.innerText = 'Enter a valid Related Link starting with http:// or https://.'; error.classList.remove('hidden'); }
-    document.getElementById('feedback-create-related-link').focus();
-    return;
-  }
-
-  feedbackCreateSubmitting = true;
-  if (btn) { btn.disabled = true; btn.innerText = 'Submitting…'; }
-  if (error) { error.innerText = ''; error.classList.add('hidden'); }
-
-  google.script.run
-    .withFailureHandler(err => {
-      feedbackCreateSubmitting = false;
-      if (btn) { btn.disabled = false; btn.innerText = 'Submit Feedback'; }
-      const message = err && err.message ? err.message : String(err || 'Could not submit Feedback.');
-      if (error) { error.innerText = message; error.classList.remove('hidden'); }
-    })
-    .withSuccessHandler(result => {
-      feedbackCreateSubmitting = false;
-      if (btn) { btn.disabled = false; btn.innerText = 'Submit Feedback'; }
-      if (!result || !result.success) {
-        const message = result && result.message ? result.message : 'Feedback could not be submitted.';
-        if (error) { error.innerText = message; error.classList.remove('hidden'); }
-        return;
-      }
-      closeCreateFeedbackModal();
-
-      if (result && result.feedback) {
-        const created = result.feedback;
-        allFeedback = [created].concat((allFeedback || []).filter(f => f.feedbackId !== created.feedbackId));
-        renderHomeFeedbackPanel();
-        if (currentTab === 'feedback') renderFeedbackTab();
-      }
-
-      showToast('Feedback ' + result.feedbackId + ' submitted.');
-      // Re-read from the server as well so the submitting user's local
-      // confirmation is reconciled with the stored row.
-      refreshFeedbackData(true);
-    })
-    .createFeedback({
-      submittedByEmail: currentUser.email,
-      feedbackType: type,
-      feedbackForEmail: recipient,
-      category: category,
-      reason: reason,
-      relatedType: relatedType,
-      relatedId: relatedId,
-      relatedLink: relatedLink,
-      details: details,
-      expectedProcess: expected,
-      impact: impact,
-      suggestedAction: suggestedAction
-    });
 }
 
 </script>
