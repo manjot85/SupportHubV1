@@ -28,7 +28,7 @@ body { overflow-x: hidden; }
 .sup-wait-badge { display: inline-block; white-space: nowrap; }
 .sup-cell-clip { min-width: 0; overflow: hidden; }
 .rich-editor-content { min-height: 90px; outline: none; }
-.rich-editor-content.rich-editor-drop-active { outline: 2px dashed #10b981; outline-offset: 2px; background: #ecfdf5; }
+[contenteditable="true"].rich-editor-drop-active { outline: 2px dashed #10b981; outline-offset: 2px; background: #ecfdf5; }
 .rich-editor-image-upload { position: relative; display: inline-block; margin: 6px 0; max-width: 100%; }
 .rich-editor-image-upload img { opacity: .82; }
 .rich-editor-image-upload[data-upload-state="uploading"]::after { content: "Uploading…"; position: absolute; left: 8px; bottom: 8px; padding: 3px 7px; border-radius: 999px; background: rgba(15,23,42,.82); color: #fff; font-size: 10px; font-weight: 700; pointer-events: none; }
@@ -2855,14 +2855,7 @@ function createRichEditorUploadPlaceholder(editorId, file, localPreviewUrl, uplo
 function failRichEditorUpload(editorId, uploadId, message) {
   const editor = document.getElementById(editorId);
   const block = editor && editor.querySelector('[data-rich-upload-id="' + CSS.escape(String(uploadId)) + '"]');
-  if (block) {
-    block.setAttribute('data-upload-state', 'error');
-    block.title = message || 'Image upload failed.';
-    const note = document.createElement('span');
-    note.className = 'block text-[10px] font-semibold text-red-700 mt-1';
-    note.textContent = 'Upload failed. Remove this image and try again.';
-    block.appendChild(note);
-  }
+  if (block) block.remove();
 }
 
 function removeRichEditorUploadPlaceholder(editorId, uploadId) {
@@ -2876,7 +2869,7 @@ function handleRichEditorFiles(files, editorId) {
 }
 
 function handleRichEditorDragOver(e) {
-  const editor = e.target && e.target.closest ? e.target.closest('.rich-editor-content') : null;
+  const editor = e.target && e.target.closest ? e.target.closest('[contenteditable="true"]') : null;
   if (!editor) return;
   const types = Array.from((e.dataTransfer && e.dataTransfer.types) || []);
   if (!types.some(type => type === 'Files')) return;
@@ -2887,7 +2880,7 @@ function handleRichEditorDragOver(e) {
 }
 
 function handleRichEditorDragLeave(e) {
-  const editor = e.target && e.target.closest ? e.target.closest('.rich-editor-content') : null;
+  const editor = e.target && e.target.closest ? e.target.closest('[contenteditable="true"]') : null;
   if (!editor) return;
   const related = e.relatedTarget;
   if (related && editor.contains(related)) return;
@@ -2895,7 +2888,7 @@ function handleRichEditorDragLeave(e) {
 }
 
 function handleRichEditorDrop(e) {
-  const editor = e.target && e.target.closest ? e.target.closest('.rich-editor-content') : null;
+  const editor = e.target && e.target.closest ? e.target.closest('[contenteditable="true"]') : null;
   if (!editor) return;
   const files = Array.from((e.dataTransfer && e.dataTransfer.files) || []).filter(file => String(file.type || '').toLowerCase().startsWith('image/'));
   if (!files.length) return;
@@ -2911,7 +2904,7 @@ function installRichEditorDragDropHandlers() {
   document.addEventListener('dragover', handleRichEditorDragOver);
   document.addEventListener('dragleave', handleRichEditorDragLeave);
   document.addEventListener('drop', function(e) {
-    const editor = e.target && e.target.closest ? e.target.closest('.rich-editor-content') : null;
+    const editor = e.target && e.target.closest ? e.target.closest('[contenteditable="true"]') : null;
     if (editor) {
       handleRichEditorDrop(e);
       return;
