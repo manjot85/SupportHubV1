@@ -28,6 +28,11 @@ body { overflow-x: hidden; }
 .sup-wait-badge { display: inline-block; white-space: nowrap; }
 .sup-cell-clip { min-width: 0; overflow: hidden; }
 .rich-editor-content { min-height: 90px; outline: none; }
+.rich-editor-content.rich-editor-drop-active { outline: 2px dashed #10b981; outline-offset: 2px; background: #ecfdf5; }
+.rich-editor-image-upload { position: relative; display: inline-block; margin: 6px 0; max-width: 100%; }
+.rich-editor-image-upload img { opacity: .82; }
+.rich-editor-image-upload[data-upload-state="uploading"]::after { content: "Uploading…"; position: absolute; left: 8px; bottom: 8px; padding: 3px 7px; border-radius: 999px; background: rgba(15,23,42,.82); color: #fff; font-size: 10px; font-weight: 700; pointer-events: none; }
+.rich-editor-image-upload[data-upload-state="error"] { border: 1px solid #fecaca; border-radius: 8px; padding: 4px; background: #fef2f2; }
 .rich-editor-content img { max-width: 100%; max-height: 250px; border-radius: 8px; margin: 6px 0; display: inline-block; border: 1px solid #e2e8f0; }
 .journey-progress-fill { transition: width .65s cubic-bezier(.22,1,.36,1); }
 .journey-roadmap { min-width: max-content; }
@@ -2790,35 +2795,137 @@ function formatAttachmentSize(bytes) {
   return (size / (1024 * 1024)).toFixed(1) + ' MB';
 }
 
-function appendUploadedImageToEditor(editorId, attachment, localPreviewUrl) {
+function appendUploadedImageToEditor(editorId, attachment, localPreviewUrl, uploadId) {
   const editor = document.getElementById(editorId);
   if (!editor) throw new Error('The question or answer window is no longer open.');
-  const block = document.createElement('p');
+
+  let block = uploadId ? editor.querySelector('[data-rich-upload-id="' + CSS.escape(String(uploadId)) + '"]') : null;
+  if (!block) {
+    block = document.createElement('p');
+    block.className = 'rich-editor-image-upload';
+    if (uploadId) block.setAttribute('data-rich-upload-id', String(uploadId));
+    editor.appendChild(block);
+  }
+
+  block.setAttribute('data-upload-state', 'complete');
   const imageLink = document.createElement('a');
-  imageLink.href = attachment.viewUrl;
+  imageLink.href = attachment.viewUrl || attachment.previewUrl || '#';
   imageLink.target = '_blank';
   imageLink.rel = 'noopener noreferrer';
+
   const image = document.createElement('img');
-  // Show the local image immediately. Before saving, the source is swapped to
-  // the permanent Drive thumbnail URL so base64 image data never enters Sheets.
-  image.src = localPreviewUrl || attachment.previewUrl;
+  image.src = attachment.previewUrl || localPreviewUrl || '';
   image.setAttribute('data-drive-src', attachment.previewUrl || '');
   image.alt = attachment.fileName || 'Attached screenshot';
   imageLink.appendChild(image);
+
   const caption = document.createElement('a');
-  caption.href = attachment.viewUrl;
+  caption.href = attachment.viewUrl || attachment.previewUrl || '#';
   caption.target = '_blank';
   caption.rel = 'noopener noreferrer';
   caption.textContent = 'Open image: ' + (attachment.fileName || 'Screenshot') + ' (' + formatAttachmentSize(attachment.fileSize) + ')';
+
+  block.innerHTML = '';
   block.appendChild(imageLink);
   block.appendChild(document.createElement('br'));
   block.appendChild(caption);
-  editor.appendChild(block);
   editor.focus();
 }
 
+function createRichEditorUploadPlaceholder(editorId, file, localPreviewUrl, uploadId) {
+  const editor = document.getElementById(editorId);
+  if (!editor) throw new Error('The question or answer window is no longer open.');
+
+  const block = document.createElement('p');
+  block.className = 'rich-editor-image-upload';
+  block.setAttribute('data-rich-upload-id', String(uploadId));
+  block.setAttribute('data-upload-state', 'uploading');
+
+  const image = document.createElement('img');
+  image.src = localPreviewUrl;
+  image.alt = file.name || 'Uploading image';
+  image.setAttribute('data-local-preview', 'true');
+  block.appendChild(image);
+
+  editor.appendChild(block);
+  editor.focus();
+  return block;
+}
+
+function failRichEditorUpload(editorId, uploadId, message) {
+  const editor = document.getElementById(editorId);
+  const block = editor && editor.querySelector('[data-rich-upload-id="' + CSS.escape(String(uploadId)) + '"]');
+  if (block) {
+    block.setAttribute('data-upload-state', 'error');
+    block.title = message || 'Image upload failed.';
+    const note = document.createElement('span');
+    note.className = 'block text-[10px] font-semibold text-red-700 mt-1';
+    note.textContent = 'Upload failed. Remove this image and try again.';
+    block.appendChild(note);
+  }
+}
+
+function removeRichEditorUploadPlaceholder(editorId, uploadId) {
+  const editor = document.getElementById(editorId);
+  const block = editor && editor.querySelector('[data-rich-upload-id="' + CSS.escape(String(uploadId)) + '"]');
+  if (block) block.remove();
+}
+
+function handleRichEditorFiles(files, editorId) {
+  Array.from(files || []).forEach(file => uploadRichTextImageFile(file, editorId, null));
+}
+
+function handleRichEditorDragOver(e) {
+  const editor = e.target && e.target.closest ? e.target.closest('.rich-editor-content') : null;
+  if (!editor) return;
+  const types = Array.from((e.dataTransfer && e.dataTransfer.types) || []);
+  if (!types.some(type => type === 'Files')) return;
+  e.preventDefault();
+  e.stopPropagation();
+  if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
+  editor.classList.add('rich-editor-drop-active');
+}
+
+function handleRichEditorDragLeave(e) {
+  const editor = e.target && e.target.closest ? e.target.closest('.rich-editor-content') : null;
+  if (!editor) return;
+  const related = e.relatedTarget;
+  if (related && editor.contains(related)) return;
+  editor.classList.remove('rich-editor-drop-active');
+}
+
+function handleRichEditorDrop(e) {
+  const editor = e.target && e.target.closest ? e.target.closest('.rich-editor-content') : null;
+  if (!editor) return;
+  const files = Array.from((e.dataTransfer && e.dataTransfer.files) || []).filter(file => String(file.type || '').toLowerCase().startsWith('image/'));
+  if (!files.length) return;
+  e.preventDefault();
+  e.stopPropagation();
+  editor.classList.remove('rich-editor-drop-active');
+  handleRichEditorFiles(files, editor.id);
+}
+
+function installRichEditorDragDropHandlers() {
+  if (window.__supportHubRichEditorDragDropInstalled) return;
+  window.__supportHubRichEditorDragDropInstalled = true;
+  document.addEventListener('dragover', handleRichEditorDragOver);
+  document.addEventListener('dragleave', handleRichEditorDragLeave);
+  document.addEventListener('drop', function(e) {
+    const editor = e.target && e.target.closest ? e.target.closest('.rich-editor-content') : null;
+    if (editor) {
+      handleRichEditorDrop(e);
+      return;
+    }
+    // Never let an image dropped elsewhere in the app navigate the iframe.
+    const files = Array.from((e.dataTransfer && e.dataTransfer.files) || []);
+    if (files.some(file => String(file.type || '').toLowerCase().startsWith('image/'))) {
+      e.preventDefault();
+    }
+  });
+}
+
 function uploadRichTextImageFile(file, editorId, input) {
-  const mime = String(file.type || '').toLowerCase();
+  const mime = String(file && file.type || '').toLowerCase();
   if (!SUPPORTED_IMAGE_ATTACHMENT_TYPES.includes(mime)) {
     customAlert('Use a PNG, JPG, GIF, or WebP image.');
     if (input) input.value = '';
@@ -2830,35 +2937,62 @@ function uploadRichTextImageFile(file, editorId, input) {
     return;
   }
 
+  const uploadId = 'rich-upload-' + Date.now() + '-' + Math.random().toString(36).slice(2);
+  const localPreviewUrl = URL.createObjectURL(file);
   if (input) input.disabled = true;
   setRichImageUploadBusy(editorId, true);
-  showToast('Uploading image...');
-  const reader = new FileReader();
-  reader.onerror = function() {
+
+  try {
+    createRichEditorUploadPlaceholder(editorId, file, localPreviewUrl, uploadId);
+  } catch (err) {
+    URL.revokeObjectURL(localPreviewUrl);
     if (input) { input.disabled = false; input.value = ''; }
     setRichImageUploadBusy(editorId, false);
+    customAlert(err.message || String(err));
+    return;
+  }
+
+  const finish = function() {
+    if (input) { input.disabled = false; input.value = ''; }
+    setRichImageUploadBusy(editorId, false);
+    URL.revokeObjectURL(localPreviewUrl);
+  };
+
+  const fail = function(err) {
+    finish();
+    const message = err && err.message ? err.message : String(err);
+    failRichEditorUpload(editorId, uploadId, message);
+    customAlert('Could not upload the image: ' + message);
+  };
+
+  const success = function(res) {
+    finish();
+    try {
+      appendUploadedImageToEditor(editorId, res || {}, localPreviewUrl, uploadId);
+      showToast((res && res.warning) ? res.warning : 'Image attached.');
+    } catch (err) {
+      removeRichEditorUploadPlaceholder(editorId, uploadId);
+      customAlert(err.message || String(err));
+    }
+  };
+
+  const reader = new FileReader();
+  reader.onerror = function() {
+    finish();
+    failRichEditorUpload(editorId, uploadId, 'The image could not be read. Please try again.');
     customAlert('The image could not be read. Please try again.');
   };
   reader.onload = function(evt) {
     const dataUrl = String(evt.target.result || '');
     const meta = imageAttachmentContext(editorId);
-    google.script.run.withFailureHandler(err => {
-      if (input) { input.disabled = false; input.value = ''; }
-      setRichImageUploadBusy(editorId, false);
-      customAlert('Could not upload the image: ' + (err && err.message ? err.message : err));
-    }).withSuccessHandler(res => {
-      if (input) { input.disabled = false; input.value = ''; }
-      setRichImageUploadBusy(editorId, false);
-      try {
-        appendUploadedImageToEditor(editorId, res || {}, dataUrl);
-        showToast((res && res.warning) ? res.warning : 'Image attached.');
-      } catch (err) {
-        customAlert(err.message || String(err));
-      }
-    }).uploadRichTextImage(dataUrl, file.name || 'screenshot.png', file.size, meta.context, meta.recordId, currentUser.email);
+    google.script.run
+      .withFailureHandler(fail)
+      .withSuccessHandler(success)
+      .uploadRichTextImage(dataUrl, file.name || 'screenshot.png', file.size, meta.context, meta.recordId, currentUser.email);
   };
   reader.readAsDataURL(file);
 }
+
 
 function getRichEditorHtml(editorId) {
   const editor = document.getElementById(editorId);
@@ -11859,6 +11993,8 @@ async function saveNotificationSettings() {
     err.classList.remove('hidden');
   }).saveNotificationPreferences(currentUser.email, prefs);
 }
+
+installRichEditorDragDropHandlers();
 
 document.addEventListener('click', function(e) {
   const panel = document.getElementById('notification-panel');
