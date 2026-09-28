@@ -2713,11 +2713,11 @@ function setRichImageUploadBusy(editorId, busy) {
     'modal-answer-input':'modal-answer-submit-btn', 'editor-inp-question':'question-submit-btn',
     'task-create-instructions':'task-create-submit', 'task-edit-instructions':'task-edit-save-btn',
     'task-modal-update-input':'task-modal-update-save', 'modal-followup-task-instructions':'modal-followup-task-add-btn',
-    'vmodal-update-text':'vmodal-update-save',
+    'vmodal-update-text':'vmodal-update-save', 'edit-question':'admin-edit-save-btn', 'edit-answer':'admin-edit-save-btn',
     'peer-reply-text':'peer-reply-submit-btn', 'peer-question-text':'peer-create-btn'
   };
-  const buttonId = buttonIds[editorId];
-  const button = document.getElementById(buttonId);
+  const buttonId = buttonIds[editorId] || (String(editorId).indexOf('quick-desk-answer-') === 0 ? 'quick-desk-submit-' + String(editorId).slice('quick-desk-answer-'.length) : '');
+  const button = buttonId ? document.getElementById(buttonId) : null;
   if (button) button.disabled = richImageUploadsInFlight[editorId] > 0 || (editorId === 'modal-answer-input' && typeof answerSubmitInFlight !== 'undefined' && answerSubmitInFlight);
 }
 
