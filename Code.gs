@@ -193,6 +193,10 @@ const ATTACHMENT_FOLDER_NAME = 'Support Hub Attachments';
 const ATTACHMENT_FOLDER_SCRIPT_PROP = 'SUPPORT_HUB_ATTACHMENT_FOLDER_ID_V2';
 const ATTACHMENT_ACCESS_SIGNATURE_PROP = 'SUPPORT_HUB_ATTACHMENT_ACCESS_V2';
 const ATTACHMENT_FOLDER_USER_PROP = 'SUPPORT_HUB_ATTACHMENT_FOLDER_ID';
+// Keep Apps Script RPC payloads comfortably below their practical limits. The
+// browser applies the same limit after resizing; this server check also keeps
+// older deployed clients from sending an oversized base64 payload.
+const MAX_RICH_TEXT_IMAGE_BYTES = 6 * 1024 * 1024;
 
 function requireSheetCellLength(value, label) {
   if (String(value == null ? '' : value).length > MAX_SHEET_CELL_CHARS) {
@@ -353,10 +357,17 @@ function uploadRichTextImage(dataUrl, fileName, declaredSize, context, recordId,
   if (!match) throw new Error('Use a PNG, JPG, GIF, or WebP image.');
   const mimeType = match[1].toLowerCase() === 'image/jpg' ? 'image/jpeg' : match[1].toLowerCase();
 
+  const encoded = match[2].replace(/\s+/g, '');
+  if (encoded.length > Math.ceil(MAX_RICH_TEXT_IMAGE_BYTES * 4 / 3)) {
+    throw new Error('This image is too large to upload. Please use a smaller image or screenshot.');
+  }
   let bytes;
-  try { bytes = Utilities.base64Decode(match[2].replace(/\s+/g, '')); }
+  try { bytes = Utilities.base64Decode(encoded); }
   catch (e) { throw new Error('The image could not be read. Please try attaching it again.'); }
   if (!bytes || !bytes.length) throw new Error('The selected image is empty.');
+  if (bytes.length > MAX_RICH_TEXT_IMAGE_BYTES) {
+    throw new Error('This image is too large to upload. Please use a smaller image or screenshot.');
+  }
 
   // Task attachments may only be added by somebody who can already see the task.
   if (/^Task/i.test(String(context || '')) && recordId) {
@@ -396,13 +407,22 @@ function uploadRichTextImage(dataUrl, fileName, declaredSize, context, recordId,
   // that one permission silently on the file. Never use DriveApp.addViewer(s),
   // because it can generate a separate sharing notification for every image.
   let sharingWarning = '';
+  const failedRecipients = Array.from(new Set((folderAccess.failedEmails || []).filter(Boolean)));
   const stillFailed = [];
-  (folderAccess.failedEmails || []).forEach(email => {
+  if (failedRecipients.length) {
+    // A folder policy can require direct file permissions. Do those requests in
+    // parallel: issuing them one at a time made a normal image paste wait once
+    // per affected team member.
+    const requests = failedRecipients.map(email => drivePermissionRequest_(file.getId(), email, 'reader'));
     try {
-      const retry = createDrivePermissionSilently_(file.getId(), email, 'reader');
-      if (!retry.success) stillFailed.push(email);
-    } catch (e) { stillFailed.push(email); }
-  });
+      const responses = UrlFetchApp.fetchAll(requests);
+      responses.forEach((response, index) => {
+        if (!drivePermissionResponseSucceeded_(response)) stillFailed.push(failedRecipients[index]);
+      });
+    } catch (e) {
+      failedRecipients.forEach(email => stillFailed.push(email));
+    }
+  }
   if (stillFailed.length) {
     sharingWarning = 'The image uploaded, but access could not be confirmed for ' + stillFailed.length + ' team member(s).';
   }
