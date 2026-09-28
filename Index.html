@@ -2900,6 +2900,9 @@ function promptInsertLink() {
 }
 
 const SUPPORTED_IMAGE_ATTACHMENT_TYPES = ['image/png','image/jpeg','image/gif','image/webp'];
+const MAX_RICH_IMAGE_UPLOAD_BYTES = 6 * 1024 * 1024;
+const RICH_IMAGE_PREPARE_THRESHOLD_BYTES = 2 * 1024 * 1024;
+const MAX_RICH_IMAGE_DIMENSION = 1920;
 const richImageUploadsInFlight = {};
 
 function setRichImageUploadBusy(editorId, busy) {
@@ -2954,24 +2957,97 @@ function handleEditorPasteImage(e, editorId) {
   const safeRemainder = sanitizeRichHtml(template.innerHTML);
   if (stripHtml(safeRemainder).trim()) execEditorCmd('insertHTML', safeRemainder);
 
-  dataImages.forEach((dataUrl, index) => {
+  dataImages.forEach(async (dataUrl, index) => {
     try {
-      uploadRichTextImageFile(dataImageUrlToFile(dataUrl, index), editorId, null);
+      // fetch() lets the browser decode the data URL asynchronously. The old
+      // atob + per-byte loop could block the editor on a large screenshot.
+      uploadRichTextImageFile(await dataImageUrlToFile(dataUrl, index), editorId, null);
     } catch (err) {
       customAlert('One pasted image could not be prepared for upload. Please use the Image button instead.');
     }
   });
 }
 
-function dataImageUrlToFile(dataUrl, index) {
+function richEditorForEventTarget(target) {
+  return target && target.nodeType === Node.ELEMENT_NODE
+    ? target.closest('[contenteditable="true"]')
+    : null;
+}
+
+function handleEditorDropImage(e, editorId) {
+  const files = Array.from((e.dataTransfer && e.dataTransfer.files) || [])
+    .filter(file => SUPPORTED_IMAGE_ATTACHMENT_TYPES.includes(String(file.type || '').toLowerCase()));
+  if (!files.length) return;
+  e.preventDefault();
+  files.forEach(file => uploadRichTextImageFile(file, editorId, null));
+}
+
+// Paste attributes cover the established editors. Drop delegation also covers
+// editors created dynamically, without changing browser behaviour for text
+// drops or non-editor targets.
+document.addEventListener('dragover', function(e) {
+  const editor = richEditorForEventTarget(e.target);
+  const items = Array.from((e.dataTransfer && e.dataTransfer.items) || []);
+  if (editor && items.some(item => item.kind === 'file' && String(item.type || '').toLowerCase().startsWith('image/'))) {
+    e.preventDefault();
+  }
+});
+document.addEventListener('drop', function(e) {
+  const editor = richEditorForEventTarget(e.target);
+  if (editor) handleEditorDropImage(e, editor.id);
+});
+
+async function dataImageUrlToFile(dataUrl, index) {
   const match = String(dataUrl || '').match(/^data:(image\/(?:png|jpe?g|gif|webp));base64,([\s\S]+)$/i);
   if (!match) throw new Error('Unsupported pasted image.');
   const mime = match[1].toLowerCase().replace('jpg', 'jpeg');
-  const binary = atob(match[2].replace(/\s+/g, ''));
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  const response = await fetch(dataUrl);
+  const bytes = await response.blob();
   const ext = mime === 'image/jpeg' ? 'jpg' : mime.split('/')[1];
   return new File([bytes], 'pasted-screenshot-' + (Number(index) + 1) + '.' + ext, { type: mime });
+}
+
+function richImageFileName(fileName, mime) {
+  const extension = mime === 'image/jpeg' ? 'jpg' : mime.split('/')[1];
+  const base = String(fileName || 'screenshot').replace(/\.(png|jpe?g|gif|webp)$/i, '') || 'screenshot';
+  return base + '.' + extension;
+}
+
+function loadImageForRichUpload(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const image = new Image();
+    image.onload = () => { URL.revokeObjectURL(url); resolve(image); };
+    image.onerror = () => { URL.revokeObjectURL(url); reject(new Error('The image could not be prepared.')); };
+    image.src = url;
+  });
+}
+
+// Keep the attachment format (including GIF animation) intact where possible.
+// Large static screenshots are resized before base64 conversion, avoiding a
+// multi-megabyte Apps Script RPC without changing the editor/save contract.
+async function prepareRichTextImageFile(file) {
+  const mime = String(file.type || '').toLowerCase();
+  if (mime === 'image/gif') {
+    if (file.size > MAX_RICH_IMAGE_UPLOAD_BYTES) throw new Error('This GIF is too large to upload. Please use a smaller file.');
+    return file;
+  }
+  if (file.size <= RICH_IMAGE_PREPARE_THRESHOLD_BYTES) return file;
+
+  const image = await loadImageForRichUpload(file);
+  const longestSide = Math.max(image.naturalWidth || image.width, image.naturalHeight || image.height);
+  const scale = Math.min(1, MAX_RICH_IMAGE_DIMENSION / Math.max(1, longestSide));
+  const width = Math.max(1, Math.round((image.naturalWidth || image.width) * scale));
+  const height = Math.max(1, Math.round((image.naturalHeight || image.height) * scale));
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  canvas.getContext('2d').drawImage(image, 0, 0, width, height);
+  const quality = mime === 'image/png' ? undefined : 0.82;
+  const blob = await new Promise(resolve => canvas.toBlob(resolve, mime, quality));
+  if (!blob) throw new Error('The image could not be prepared.');
+  if (blob.size > MAX_RICH_IMAGE_UPLOAD_BYTES) throw new Error('This image is too large after resizing. Please use a smaller image.');
+  return new File([blob], richImageFileName(file.name, mime), { type: mime });
 }
 
 function imageAttachmentContext(editorId) {
@@ -3033,32 +3109,34 @@ function uploadRichTextImageFile(file, editorId, input) {
 
   if (input) input.disabled = true;
   setRichImageUploadBusy(editorId, true);
-  showToast('Uploading image...');
-  const reader = new FileReader();
-  reader.onerror = function() {
+  showToast(file.size > RICH_IMAGE_PREPARE_THRESHOLD_BYTES ? 'Preparing image...' : 'Uploading image...');
+  const finishWithError = function(message) {
     if (input) { input.disabled = false; input.value = ''; }
     setRichImageUploadBusy(editorId, false);
-    customAlert('The image could not be read. Please try again.');
+    customAlert(message);
   };
-  reader.onload = function(evt) {
-    const dataUrl = String(evt.target.result || '');
-    const meta = imageAttachmentContext(editorId);
-    google.script.run.withFailureHandler(err => {
-      if (input) { input.disabled = false; input.value = ''; }
-      setRichImageUploadBusy(editorId, false);
-      customAlert('Could not upload the image: ' + (err && err.message ? err.message : err));
-    }).withSuccessHandler(res => {
-      if (input) { input.disabled = false; input.value = ''; }
-      setRichImageUploadBusy(editorId, false);
-      try {
-        appendUploadedImageToEditor(editorId, res || {}, dataUrl);
-        showToast((res && res.warning) ? res.warning : 'Image attached.');
-      } catch (err) {
-        customAlert(err.message || String(err));
-      }
-    }).uploadRichTextImage(dataUrl, file.name || 'screenshot.png', file.size, meta.context, meta.recordId, currentUser.email);
-  };
-  reader.readAsDataURL(file);
+  prepareRichTextImageFile(file).then(preparedFile => {
+    showToast('Uploading image...');
+    const reader = new FileReader();
+    reader.onerror = () => finishWithError('The image could not be read. Please try again.');
+    reader.onload = function(evt) {
+      const dataUrl = String(evt.target.result || '');
+      const meta = imageAttachmentContext(editorId);
+      google.script.run.withFailureHandler(err => {
+        finishWithError('Could not upload the image: ' + (err && err.message ? err.message : err));
+      }).withSuccessHandler(res => {
+        if (input) { input.disabled = false; input.value = ''; }
+        setRichImageUploadBusy(editorId, false);
+        try {
+          appendUploadedImageToEditor(editorId, res || {}, URL.createObjectURL(preparedFile));
+          showToast((res && res.warning) ? res.warning : 'Image attached.');
+        } catch (err) {
+          customAlert(err.message || String(err));
+        }
+      }).uploadRichTextImage(dataUrl, preparedFile.name || 'screenshot.png', preparedFile.size, meta.context, meta.recordId, currentUser.email);
+    };
+    reader.readAsDataURL(preparedFile);
+  }).catch(err => finishWithError(err && err.message ? err.message : 'The image could not be prepared.'));
 }
 
 function getRichEditorHtml(editorId) {
@@ -12393,7 +12471,7 @@ function renderFeedbackTab() {
         '</div>';
     }
     list.innerHTML =
-      '<div class="p-8 text-center text-xs text-slate-400">'FEEDBACK DEBUG 13H.6.9 - No feedback matches this view.' +
+      '<div class="p-8 text-center text-xs text-slate-400">No feedback matches this view.' +
       diagnostic +
       '</div>';
     return;
